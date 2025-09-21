@@ -10,7 +10,7 @@ load_dotenv()
 class DatabaseHandler:
     """Class to handle PostgreSQL database connection and operations"""
 
-    def __init__(self, db_url:str=os.environ.get("POST_DB_LINK")):
+    def __init__(self, db_url):
 
         """Initialize the database connection."""
         self.conn = psycopg2.connect(db_url, sslmode='require')
