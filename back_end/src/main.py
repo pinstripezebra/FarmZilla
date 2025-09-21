@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 
 # custom imports
-from src.models import (
+from models import (
     Consumer, ConsumerModel,
     Producer, ProducerModel,
     Product, ProductModel,
