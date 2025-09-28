@@ -1,0 +1,39 @@
+{
+  "Introduction": {
+    "header": "We are Optigame",
+    "subtext": "Helping you find your next great Boardgame",
+    "buttonText": "Signup/Login"
+  },
+  "Features": [
+    {
+      "image": "https://img.icons8.com/color/96/000000/idea.png",
+      "title": "Smart Recommendations",
+      "text": "Get personalized game suggestions based on your preferences and play history."
+    },
+    {
+      "image": "https://img.icons8.com/color/96/000000/rating.png",
+      "title": "Community Ratings",
+      "text": "See ratings and reviews from real players to help you choose your next game."
+    },
+    {
+      "image": "https://img.icons8.com/color/96/000000/checked-checkbox.png",
+      "title": "Track Your Shelf",
+      "text": "Easily manage your 'Want to Play' and 'Have Played' lists in one place."
+    },
+    {
+      "image": "https://img.icons8.com/color/96/000000/share.png",
+      "title": "Share & Connect",
+      "text": "Share your favorite games and connect with friends for a social gaming experience."
+    }
+  ],
+  "AboutUs": {
+    "blurb": "Optigame is your personalized board game companion, helping you discover, track, and share your favorite games. Whether you're a casual player or a dedicated enthusiast, Optigame makes finding your next great board game easy and fun.",
+    "whyChoose": [
+      "Personalized recommendations tailored to your tastes",
+      "Easy shelf management for games you want to play and have played",
+      "Community-driven ratings and reviews",
+      "Modern, user-friendly interface",
+      "Connect and share with friends"
+    ]
+  }
+}
