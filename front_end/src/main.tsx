@@ -8,20 +8,16 @@ import {
 } from "react-router-dom";
 import { UserProvider } from "./context/UserContex";
 
-
+import HomePage from "./pages/HomePage/Home";
 import LandingPage from "./pages/LandingPage/LandingPage";
 import NotFoundPage from "./pages/NotFoundPage/NotFoundPage";
 import Login from "./pages/LoginSignupPage/Login";
 import Logout from "./pages/LoginSignupPage/Logout";
 import Signup from "./pages/LoginSignupPage/Signup";
+import ProtectedRoute from "./pages/LoginSignupPage/ProtectedRoute";
 
 
 const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <LandingPage />,
-    errorElement: <NotFoundPage />,
-  },
   {
     path: "/LandingPage",
     element: <LandingPage />,
@@ -41,7 +37,16 @@ const router = createBrowserRouter([
     path: "/Signup",
     element: <Signup />,
     errorElement: <NotFoundPage />,
-  }
+  },
+  {
+    path: "/",
+    element: (
+      <ProtectedRoute>
+        <HomePage />
+      </ProtectedRoute>
+    ),
+    errorElement: <NotFoundPage />,
+  },
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

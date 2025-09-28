@@ -5,6 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from dotenv import load_dotenv
 import os
+import logging
 
 # Load environment variables
 load_dotenv()
@@ -70,6 +71,26 @@ SECRET_KEY = os.environ.get("AUTH_SECRET_KEY")
 ALGORITHM = os.environ.get("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
+# Configure logging to file and console
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s %(name)s %(message)s',
+    handlers=[
+        logging.FileHandler("fastapi_error.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+@app.middleware("http")
+async def log_exceptions(request, call_next):
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as exc:
+        logger.exception(f"Unhandled exception for request: {request.url}")
+        raise
+
 #-------------------------------------------------#
 # ----------PART 1: GET METHODS-------------------#
 #-------------------------------------------------#
@@ -103,10 +124,10 @@ async def fetch_producer_consumer_matches(match_id: str = None, db: Session = De
         matches = db.query(ProducerConsumerMatch).all()
     return [ProducerConsumerMatchModel.from_orm(match) for match in matches]
 
-
-#-------------------------------------------------#
-# -----------PART 2: POST METHODS-----------------#
-#-------------------------------------------------#
+@app.get("/api/v1/users/all")
+async def get_all_users(db: Session = Depends(get_db)):
+    users = db.query(User).all()
+    return [UserModel.from_orm(user) for user in users]
 
 # for verifying JWT token
 @app.get("/api/v1/verify/{token}")
@@ -117,6 +138,11 @@ async def verify_token_endpoint(token: str):
     except HTTPException as e:
         raise e
     
+
+#-------------------------------------------------#
+# -----------PART 2: POST METHODS-----------------#
+#-------------------------------------------------#
+
 
 
 # for adding a new user to database
