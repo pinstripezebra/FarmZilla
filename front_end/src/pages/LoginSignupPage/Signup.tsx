@@ -22,7 +22,7 @@ import {
 } from "@chakra-ui/react";
 import { FaUserAlt, FaLock } from "react-icons/fa";
 import backgroundImage from "../../assets/register.jpg";
-import logo from "../../assets/chess_logo.jpg";
+import logo from "../../assets/FarmZilla.png";
 import { createUser } from "./CreateUser";
 
 const Signup = () => {
