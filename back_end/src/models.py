@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import UUID as SA_UUID
 from sqlalchemy.ext.declarative import declarative_base
 import uuid
 from uuid import UUID
+from sqlalchemy import Enum as SAEnum
 
 # loading sql model
 from sqlmodel import Field, Session, SQLModel, create_engine, select
@@ -16,36 +17,30 @@ from sqlmodel import Field, Session, SQLModel, create_engine, select
 # Initialize the base class for SQLAlchemy models
 Base = declarative_base()
 
+class UserRole(str, Enum):
+    producer = "producer"
+    consumer = "consumer"
 
-class Consumer(Base):
-    __tablename__ = "consumers"
+class User(Base):
+    __tablename__ = "users"  # Table name in the PostgreSQL database
+
     id = Column(pg.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
-    consumer_id = Column(String, unique=True, nullable=False)
-    name = Column(String, nullable=False)
+    username = Column(String, nullable=False)
+    password = Column(String, nullable=False)
     email = Column(String, nullable=False)
+    role = Column(SAEnum(UserRole), nullable=False)
 
-class ConsumerModel(BaseModel):
+
+class UserModel(BaseModel):
     id: Optional[UUID] = None
-    consumer_id: str
-    name: str
+    username: str
+    password: str
     email: str
-    class Config:
-        orm_mode = True
-        from_attributes = True
+    role: UserRole
 
-class Producer(Base):
-    __tablename__ = "producers"
-    id = Column(pg.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
-    producer_id = Column(String, unique=True, nullable=False)
-    product_id = Column(String, nullable=False)
-
-class ProducerModel(BaseModel):
-    id: Optional[UUID] = None
-    producer_id: str
-    product_id: str
     class Config:
-        orm_mode = True
-        from_attributes = True
+        orm_mode = True  # Enable ORM mode to work with SQLAlchemy objects
+        from_attributes = True # Enable attribute access for SQLAlchemy objects
 
 class Product(Base):
     __tablename__ = "products"

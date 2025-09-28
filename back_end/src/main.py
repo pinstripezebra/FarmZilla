@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, status
 from uuid import uuid4, UUID
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -12,11 +12,14 @@ load_dotenv()
 # security imports
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
+from passlib.context import CryptContext
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import jwt
+from datetime import datetime, timedelta
 
 # custom imports
 from models import (
-    Consumer, ConsumerModel,
-    Producer, ProducerModel,
+    User, UserModel,
     Product, ProductModel,
     ProducerConsumerMatch, ProducerConsumerMatchModel
 )
@@ -24,6 +27,9 @@ from models import (
 
 # Load the database connection string from environment variable or .env file
 DATABASE_URL = os.environ.get("AWS_RDS_URL")
+
+# secure the API with OAuth2
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # creating connection to the database
 engine = create_engine(DATABASE_URL)
@@ -45,7 +51,9 @@ def get_db():
 app = FastAPI(title="FarmZilla", version="1.0.0")
 
 # Add CORS middleware to allow requests 
-origins = ["http://localhost:8000"]
+origins = ["http://localhost:8000", 
+           "http://localhost:5174", 
+           "http://localhost:5173",]
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,6 +63,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# JWT configuration from environment variables
+SECRET_KEY = os.environ.get("AUTH_SECRET_KEY")
+ALGORITHM = os.environ.get("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+
 #-------------------------------------------------#
 # ----------PART 1: GET METHODS-------------------#
 #-------------------------------------------------#
@@ -63,21 +78,14 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.get("/api/v1/consumers/")
-async def fetch_consumers(consumer_id: str = None, db: Session = Depends(get_db)):
-    if consumer_id:
-        consumers = db.query(Consumer).filter(Consumer.consumer_id == consumer_id).all()
+@app.get("/api/v1/user/")
+async def fetch_users(user_id: str = None, db: Session = Depends(get_db)):
+    if user_id:
+        users = db.query(User).filter(User.id == user_id).all()
     else:
-        consumers = db.query(Consumer).all()
-    return [ConsumerModel.from_orm(consumer) for consumer in consumers]
+        users = db.query(User).all()
+    return [UserModel.from_orm(user) for user in users]
 
-@app.get("/api/v1/producers/")
-async def fetch_producers(producer_id: str = None, db: Session = Depends(get_db)):
-    if producer_id:
-        producers = db.query(Producer).filter(Producer.producer_id == producer_id).all()
-    else:
-        producers = db.query(Producer).all()
-    return [ProducerModel.from_orm(producer) for producer in producers]
 
 @app.get("/api/v1/products/")
 async def fetch_products(product_id: str = None, db: Session = Depends(get_db)):
@@ -94,3 +102,99 @@ async def fetch_producer_consumer_matches(match_id: str = None, db: Session = De
     else:
         matches = db.query(ProducerConsumerMatch).all()
     return [ProducerConsumerMatchModel.from_orm(match) for match in matches]
+
+
+#-------------------------------------------------#
+# -----------PART 2: POST METHODS-----------------#
+#-------------------------------------------------#
+
+# for verifying JWT token
+@app.get("/api/v1/verify/{token}")
+async def verify_token_endpoint(token: str):
+    try:
+        payload = verify_token(token)
+        return {"message": "Token is valid", "payload": payload}
+    except HTTPException as e:
+        raise e
+    
+
+
+# for adding a new user to database
+@app.post("/api/v1/user/")
+async def  create_user(user: UserModel, db: Session = Depends(get_db)):
+    # Check if the entry already exists
+    existing = db.query(User).filter_by(username=user.username).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="User already exists.")
+    
+    # Hash the password before storing
+    hashed_password = pwd_context.hash(user.password)
+
+    # Only include id if provided, otherwise let SQLAlchemy generate it
+    user_data = {
+        "username": user.username,
+        "password": hashed_password,
+        "email": user.email,
+        "role": user.role
+    }
+    if user.id is not None:
+        # Ensure it's a UUID object
+        user_data["id"] = UUID(str(user.id))
+
+    db_user = User(**user_data)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+# for generating a JWT token for user authentication
+@app.post("/api/v1/token")
+async def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    user = user_authentication(db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES) if "ACCESS_TOKEN_EXPIRE_MINUTES" in config and ACCESS_TOKEN_EXPIRE_MINUTES else timedelta(minutes=15)
+    access_token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+#-------------------------------------------------#
+# ----------PART 3: HELPER METHODS----------------#
+#-------------------------------------------------#
+
+# helper function to authenticate user by hasing password
+def user_authentication(db: Session, username: str, password: str):
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        return None
+    if not pwd_context.verify(password, user.password):
+        return None
+    return user
+
+# helper function to create JWT access token
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta is None:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    else:
+        expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+# helper function to verify JWT token
+def verify_token(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        return payload
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
