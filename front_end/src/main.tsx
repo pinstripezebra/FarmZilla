@@ -1,10 +1,36 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { ChakraProvider } from "@chakra-ui/react";
+import { ThemeProvider } from "next-themes";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import {
+  createBrowserRouter,
+  RouterProvider,
+} from "react-router-dom";
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+
+import LandingPage from "./pages/LandingPage/LandingPage";
+import NotFoundPage from "./pages/NotFoundPage/NotFoundPage";
+
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <LandingPage />,
+    errorElement: <NotFoundPage />,
+  },
+  {
+    path: "/LandingPage",
+    element: <LandingPage />,
+    errorElement: <NotFoundPage />,
+  }
+]);
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <ChakraProvider>
+      <ThemeProvider attribute="class" disableTransitionOnChange>
+            <RouterProvider router={router} />
+      </ThemeProvider>
+    </ChakraProvider>
+  </React.StrictMode>
+);

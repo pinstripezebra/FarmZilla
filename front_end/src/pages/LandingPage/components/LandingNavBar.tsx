@@ -1,5 +1,5 @@
 import { Box, HStack, Button } from "@chakra-ui/react";
-import OptigameLogo from "../../../assets/react.svg";
+import FarmZillaLogo from "../../../assets/FarmZilla.png";
 
 const scrollToSection = (id: string) => {
   const section = document.getElementById(id);
@@ -22,7 +22,7 @@ const LandingNavbar = () => {
       zIndex={100}
     >
       <HStack spacing={8} justify="space-between" align="center" width="100%">
-        <OptigameLogo />
+        <img src={FarmZillaLogo} alt="FarmZilla Logo" style={{ height: "40px" }} />
         <HStack spacing={4}>
           <Button
             variant="ghost"
