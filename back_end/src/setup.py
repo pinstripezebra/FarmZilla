@@ -24,24 +24,17 @@ URL_database = f"postgresql://{master_username}:{password}@{rds_endpoint}:{rds_p
 engine = DatabaseHandler(URL_database)
 
 # loading csv files into pandas dataframes
-consumers = pd.read_csv(os.getcwd() + '/data/consumers.csv')
-producers = pd.read_csv(os.getcwd() + '/data/producers.csv')
+users = pd.read_csv(os.getcwd() + '/data/users.csv')
 products = pd.read_csv(os.getcwd() + '/data/products.csv')
 producer_consumer_matches = pd.read_csv(os.getcwd() + '/data/producer_consumer_matches.csv')
 
 # Defining queries to create tables
-consumer_table_creation_query = """CREATE TABLE IF NOT EXISTS consumers (
-    id UUID PRIMARY KEY,
-    consumer_id VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL
-    )
-    """
-
-producers_table_creation_query = """CREATE TABLE IF NOT EXISTS producers (
-    id UUID PRIMARY KEY,
-    producer_id VARCHAR(255) UNIQUE NOT NULL,
-    product_id VARCHAR(255) NOT NULL
+users_table_creation_query = """CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(8) PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL
     )
     """
 
@@ -61,23 +54,19 @@ producer_consumer_matching_table_creation_query = """CREATE TABLE IF NOT EXISTS 
     """
 
 # Deleting tables if they already exist
-engine.delete_table('consumers')
-engine.delete_table('producers')
+engine.delete_table('users')
 engine.delete_table('products')
 engine.delete_table('producer_consumer_matches')
 
 # Create tables
-engine.create_table(consumer_table_creation_query)
-engine.create_table(producers_table_creation_query)
+engine.create_table(users_table_creation_query)
 engine.create_table(products_table_creation_query)
 engine.create_table(producer_consumer_matching_table_creation_query)
 
 
 # Ensuring each row of each dataframe has a unique ID
-if 'id' not in consumers.columns:
-    consumers['id'] = [str(uuid.uuid4()) for _ in range(len(consumers))]
-if 'id' not in producers.columns:
-    producers['id'] = [str(uuid.uuid4()) for _ in range(len(producers))]
+if 'id' not in users.columns:
+    users['id'] = [str(uuid.uuid4())[:8] for _ in range(len(users))]
 if 'id' not in products.columns:
     products['id'] = [str(uuid.uuid4()) for _ in range(len(products))]
 if 'id' not in producer_consumer_matches.columns:
@@ -85,13 +74,11 @@ if 'id' not in producer_consumer_matches.columns:
 
 
 # Populates the 4 tables with data from the dataframes
-engine.populate_table_dynamic(consumers, 'consumers')
-engine.populate_table_dynamic(producers, 'producers')
+engine.populate_table_dynamic(users, 'users')
 engine.populate_table_dynamic(products, 'products')
 engine.populate_table_dynamic(producer_consumer_matches, 'producer_consumer_matches')
 
 # Testing if the tables were created and populated correctly
-print(engine.test_table('consumers'))
-print(engine.test_table('producers'))
+print(engine.test_table('users'))
 print(engine.test_table('products'))
 print(engine.test_table('producer_consumer_matches'))
