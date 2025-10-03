@@ -46,7 +46,7 @@ const Logout = () => {
               <Avatar bg="teal.500" />
               <Heading color="teal.400">Goodbye</Heading>
               <Text fontSize="lg" textAlign="center">
-                You have successfully logged out. Thank you for Optigame!
+                You have successfully logged out. Thank you for using FarmZilla!
               </Text>
 
               {/* Return to Login Button */}

@@ -20,8 +20,8 @@ import {
 } from "@chakra-ui/react";
 import { FaUserAlt, FaLock } from "react-icons/fa";
 import api from "./../../services/apli-client";
-import backgroundImage from "../../assets/background7.jpg";
-import logo from "../../assets/chess_logo.jpg";
+import backgroundImage from "../../assets/login_background.jpg";
+import logo from "../../assets/FarmZilla.png";
 
 // setting user context when they login
 import { useUser } from "../../context/UserContex";
