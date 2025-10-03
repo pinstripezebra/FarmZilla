@@ -53,14 +53,17 @@ app = FastAPI(title="FarmZilla", version="1.0.0")
 
 # Add CORS middleware to allow requests 
 origins = [
+    "http://localhost:8000", 
+    "http://localhost:5174", 
     "http://localhost:5173",
-    "http://127.0.0.1:5173"
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8000",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,  
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -72,25 +75,6 @@ SECRET_KEY = os.environ.get("AUTH_SECRET_KEY")
 ALGORITHM = os.environ.get("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
-# Configure logging to file and console
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s %(levelname)s %(name)s %(message)s',
-    handlers=[
-        logging.FileHandler("fastapi_error.log"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
-
-@app.middleware("http")
-async def log_exceptions(request, call_next):
-    try:
-        response = await call_next(request)
-        return response
-    except Exception as exc:
-        logger.exception(f"Unhandled exception for request: {request.url}")
-        raise
 
 #-------------------------------------------------#
 # ----------PART 1: GET METHODS-------------------#
@@ -146,16 +130,24 @@ async def verify_token_endpoint(token: str):
 
 
 
-# for adding a new user to database
 @app.post("/api/v1/user/")
-async def  create_user(user: UserModel, db: Session = Depends(get_db)):
+async def create_user(user: UserModel, db: Session = Depends(get_db)):
     # Check if the entry already exists
     existing = db.query(User).filter_by(username=user.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="User already exists.")
-    
+
+    # Ensure password is not longer than 72 bytes for bcrypt
+    password_bytes = user.password.encode('utf-8')
+    if len(password_bytes) > 72:
+        raise HTTPException(
+            status_code=400,
+            detail="Password cannot be longer than 72 bytes."
+        )
+    password = user.password
+
     # Hash the password before storing
-    hashed_password = pwd_context.hash(user.password)
+    hashed_password = pwd_context.hash(password)
 
     # Only include id if provided, otherwise let SQLAlchemy generate it
     user_data = {
@@ -165,7 +157,6 @@ async def  create_user(user: UserModel, db: Session = Depends(get_db)):
         "role": user.role
     }
     if user.id is not None:
-        # Ensure it's a UUID object
         user_data["id"] = UUID(str(user.id))
 
     db_user = User(**user_data)

@@ -28,7 +28,7 @@ class User(Base):
     username = Column(String, nullable=False)
     password = Column(String, nullable=False)
     email = Column(String, nullable=False)
-    role = Column(SAEnum(UserRole), nullable=False)
+    role = Column(String, nullable=False)
 
 
 class UserModel(BaseModel):
@@ -36,7 +36,7 @@ class UserModel(BaseModel):
     username: str
     password: str
     email: str
-    role: UserRole
+    role: str
 
     class Config:
         orm_mode = True  # Enable ORM mode to work with SQLAlchemy objects
