@@ -4,21 +4,28 @@ interface CreateUserPayload {
   username: string;
   password: string;
   email: string;
-  role?: string; 
+  role: string;
 }
 
-export const createUser = ({ username, password, email, role = "user" }: CreateUserPayload) => {
+export const createUser = ({
+  username,
+  password,
+  email,
+  role = "consumer",
+}: CreateUserPayload) => {
   console.log({
     username,
     password,
     email,
-    role: role || "user"
-  })
-  
+    role: role || "consumer",
+  });
+
+  const validRoles = ["producer", "consumer"];
+  const safeRole = validRoles.includes(role) ? role : "consumer";
   return api.post("/v1/user/", {
     username,
     password,
     email,
-    role: role || "user"
+    role: safeRole,
   });
 };

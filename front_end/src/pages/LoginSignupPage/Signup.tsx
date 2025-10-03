@@ -72,7 +72,7 @@ const Signup = () => {
         email,
         username,
         password,
-        role: "user",
+        role: "producer" // default role,
       });
       toast({
         title: "Account created successfully!",
