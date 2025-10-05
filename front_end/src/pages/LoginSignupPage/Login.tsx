@@ -84,7 +84,7 @@ function Login() {
         const data = response.data;
         localStorage.setItem("token", data.access_token);
         // Fetch user data after login
-        const userRes = await api.get(`/v1/user/?user_id=${localUsername}`);
+        const userRes = await api.get(`/v1/user/?username=${localUsername}`);
         const userData = userRes.data[0];
         setUser(userData);
         // Optionally, store username for legacy code
