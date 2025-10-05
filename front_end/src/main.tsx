@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 import { UserProvider } from "./context/UserContex";
 
-import HomePage from "./pages/HomePage/Home";
+import HomePage from "./pages/ProducerHomePage/Home";
 import LandingPage from "./pages/LandingPage/LandingPage";
 import NotFoundPage from "./pages/NotFoundPage/NotFoundPage";
 import Login from "./pages/LoginSignupPage/Login";
