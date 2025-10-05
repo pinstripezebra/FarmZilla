@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Box, Heading, Button, Flex, Text } from "@chakra-ui/react";
+import { Heading, Button, Flex, Text } from "@chakra-ui/react";
 import ProducerSupplyBar from "./HomePageAssets/ProducerSupplyBar";
 import { useNavigate } from "react-router-dom";
 
