@@ -50,7 +50,7 @@ function Login() {
   // State for loading spinner
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { setUsername } = useUser();
+  const { setUser } = useUser();
   const handleShowClick = () => setShowPassword(!showPassword);
 
   // validation form to ensure username and password are not blank
@@ -83,9 +83,18 @@ function Login() {
       if (response.status === 200) {
         const data = response.data;
         localStorage.setItem("token", data.access_token);
-        localStorage.setItem("username", localUsername);
-        setUsername(localUsername);
-        navigate("/");
+        // Fetch user data after login
+        const userRes = await api.get(`/v1/user/?user_id=${localUsername}`);
+        const userData = userRes.data[0];
+        setUser(userData);
+        // Optionally, store username for legacy code
+        localStorage.setItem("username", userData.username);
+        // Route based on role
+        if (userData.role === "consumer") {
+          navigate("/ConsumerHomePage");
+        } else {
+          navigate("/");
+        }
         console.log("Login successful:", data.access_token);
       }
     } catch (error: any) {

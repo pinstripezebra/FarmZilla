@@ -9,6 +9,7 @@ import {
 import { UserProvider } from "./context/UserContex";
 
 import HomePage from "./pages/ProducerHomePage/Home";
+import ConsumerHomePage from "./pages/ConsumerHomePage/ConsumerHome";
 import LandingPage from "./pages/LandingPage/LandingPage";
 import NotFoundPage from "./pages/NotFoundPage/NotFoundPage";
 import Login from "./pages/LoginSignupPage/Login";
@@ -36,6 +37,15 @@ const router = createBrowserRouter([
   {
     path: "/Signup",
     element: <Signup />,
+    errorElement: <NotFoundPage />,
+  },
+  {
+    path: "/ConsumerHomePage",
+    element: (
+      <ProtectedRoute>
+        <ConsumerHomePage />
+      </ProtectedRoute>
+    ),
     errorElement: <NotFoundPage />,
   },
   {
