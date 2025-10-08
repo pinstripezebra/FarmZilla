@@ -1,11 +1,12 @@
-from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, status
+import boto3
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, status
 from uuid import uuid4, UUID
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from dotenv import load_dotenv
 import os
-import logging
+import boto3
 
 # Load environment variables
 load_dotenv()
@@ -28,12 +29,14 @@ from models import (
 
 # Load the database connection string from environment variable or .env file
 DATABASE_URL = os.environ.get("AWS_RDS_URL")
+AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
 
 # secure the API with OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # creating connection to the database
 engine = create_engine(DATABASE_URL)
+s3 = boto3.client('s3')
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -181,6 +184,19 @@ async def login_for_access_token(
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES) if ACCESS_TOKEN_EXPIRE_MINUTES is not None and ACCESS_TOKEN_EXPIRE_MINUTES else timedelta(minutes=15)
     access_token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+# for uploading files to s3 bucket
+@app.post("/api/v1/uploadfile/")
+async def upload_file_to_s3(file: UploadFile | None = None):
+    if file is None:
+        return {"error": "No file provided"}
+    try:
+        s3.upload_fileobj(file.file, AWS_BUCKET_NAME, file.filename)
+        return {"message": "File uploaded successfully"}
+    except Exception as e:
+        return {"error": str(e)}
+    
 
 #-------------------------------------------------#
 # ----------PART 3: HELPER METHODS----------------#
