@@ -11,6 +11,7 @@ interface ProductEntryFormProps {
 
 const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose }) => {
   const [image, setImage] = useState<File | null>(null);
+  const [product_name, setProductName] = useState("");
   const [description, setDescription] = useState("");
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,6 +37,14 @@ const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose }) 
             <FormControl mb={4}>
               <FormLabel>Product Image</FormLabel>
               <Input type="file" accept="image/*" onChange={handleImageChange} />
+            </FormControl>
+            <FormControl mb={4}>
+              <FormLabel>Product Name</FormLabel>
+              <Textarea
+                value={product_name}
+                onChange={e => setProductName(e.target.value)}
+                placeholder="Enter product name"
+              />
             </FormControl>
             <FormControl mb={4}>
               <FormLabel>Description</FormLabel>

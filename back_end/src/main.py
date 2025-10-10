@@ -168,6 +168,20 @@ async def create_user(user: UserModel, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
+# for creating a new product
+@app.post("/api/v1/products/")
+async def create_product(product: ProductModel, db: Session = Depends(get_db)):
+    # Check if the entry already exists
+    existing = db.query(Product).filter_by(product_name=product.product_name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Product already exists.")
+
+    db_product = Product(**product.dict())
+    db.add(db_product)
+    db.commit()
+    db.refresh(db_product)
+    return db_product
+
 # for generating a JWT token for user authentication
 @app.post("/api/v1/token")
 async def login_for_access_token(
