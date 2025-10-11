@@ -20,7 +20,7 @@ from jose import jwt
 from datetime import datetime, timedelta
 
 # custom imports
-from models import (
+from back_end.src.models import (
     User, UserModel,
     Product, ProductModel,
     ProducerConsumerMatch, ProducerConsumerMatchModel
