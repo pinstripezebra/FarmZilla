@@ -40,9 +40,6 @@ s3 = boto3.client('s3')
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Create the database tables (if they don't already exist)
-Base.metadata.create_all(bind=engine)
-
 # Dependency to get the database session
 def get_db():
     db = SessionLocal()
@@ -53,6 +50,17 @@ def get_db():
 
 # Initialize the FastAPI app
 app = FastAPI(title="FarmZilla", version="1.0.0")
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database tables on startup"""
+    try:
+        # Create the database tables (if they don't already exist)
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created successfully")
+    except Exception as e:
+        print(f"⚠️ Warning: Could not create database tables: {e}")
+        # Don't crash the app, let it start and handle DB errors per request
 
 # Add CORS middleware to allow requests 
 origins = [
