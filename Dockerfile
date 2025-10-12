@@ -20,10 +20,10 @@ COPY . .
 RUN mkdir -p logs
 
 # Expose the port
-EXPOSE 8000
+EXPOSE 80
 
 # Set environment variables for Python path
 ENV PYTHONPATH=/app
 
 # Command to run the application
-CMD ["uvicorn", "back_end.src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "back_end.src.main:app", "--host", "0.0.0.0", "--port", "80"]
