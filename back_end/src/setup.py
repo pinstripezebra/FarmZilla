@@ -24,9 +24,10 @@ URL_database = f"postgresql://{master_username}:{password}@{rds_endpoint}:{rds_p
 engine = DatabaseHandler(URL_database)
 
 # loading csv files into pandas dataframes
-users = pd.read_csv(os.getcwd() + '/data/users.csv')
-products = pd.read_csv(os.getcwd() + '/data/products.csv')
-producer_consumer_matches = pd.read_csv(os.getcwd() + '/data/producer_consumer_matches.csv')
+project_root = os.path.dirname(os.path.dirname(os.getcwd()))  # Go up two directories to project root
+users = pd.read_csv(os.path.join(project_root, 'data', 'users.csv'))
+products = pd.read_csv(os.path.join(project_root, 'data', 'products.csv'))
+producer_consumer_matches = pd.read_csv(os.path.join(project_root, 'data', 'producer_consumer_matches.csv'))
 
 # Defining queries to create tables
 users_table_creation_query = """CREATE TABLE IF NOT EXISTS users (
@@ -42,7 +43,8 @@ products_table_creation_query = """CREATE TABLE IF NOT EXISTS products (
     id UUID PRIMARY KEY,
     product_id VARCHAR(255) UNIQUE NOT NULL,
     product_name VARCHAR(255) NOT NULL,
-    description TEXT NOT NULL
+    description TEXT NOT NULL,
+    image_url TEXT
     )
     """
 
@@ -71,6 +73,10 @@ if 'id' not in products.columns:
     products['id'] = [str(uuid.uuid4()) for _ in range(len(products))]
 if 'id' not in producer_consumer_matches.columns:
     producer_consumer_matches['id'] = [str(uuid.uuid4()) for _ in range(len(producer_consumer_matches))]
+
+# Add image_url column to products dataframe with empty values for initial data
+if 'image_url' not in products.columns:
+    products['image_url'] = None  # or empty string '' if preferred
 
 
 # Populates the 4 tables with data from the dataframes

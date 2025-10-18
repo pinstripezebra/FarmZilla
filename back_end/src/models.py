@@ -48,12 +48,14 @@ class Product(Base):
     product_id = Column(String, unique=True, nullable=False)
     product_name = Column(String, nullable=False)
     description = Column(String, nullable=False)
+    image_url = Column(String, nullable=True)  # URL to S3 image
 
 class ProductModel(BaseModel):
     id: Optional[UUID] = None
     product_id: str
     product_name: str
     description: str
+    image_url: Optional[str] = None  # URL to S3 image
     class Config:
         orm_mode = True
         from_attributes = True

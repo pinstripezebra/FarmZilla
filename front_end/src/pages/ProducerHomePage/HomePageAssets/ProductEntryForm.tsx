@@ -46,11 +46,12 @@ const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose }) 
         imageUrl = `https://${bucketName}.s3.amazonaws.com/${s3Key}`;
       }
 
-      // 2. Send product name and description to backend
+      // 2. Send product data including image_url to backend
       await api.post("/v1/products/", {
-        product_id:"test_id", // Placeholder, backend should generate this
+        product_id: "", // Let backend generate this
         product_name,
-        description
+        description,
+        image_url: imageUrl // Include the S3 URL
       });
 
       toast({

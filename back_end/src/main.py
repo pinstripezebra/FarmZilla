@@ -184,6 +184,10 @@ async def create_product(product: ProductModel, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Product already exists.")
 
+    # Generate a unique product_id if not provided or if it's the placeholder
+    if not product.product_id or product.product_id == "test_id":
+        product.product_id = str(uuid4())[:8].upper()  # Generate 8-character uppercase ID
+
     db_product = Product(**product.dict())
     db.add(db_product)
     db.commit()
