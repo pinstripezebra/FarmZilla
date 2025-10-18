@@ -15,7 +15,19 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  IconButton,
+  useToast,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  Button,
+  useDisclosure,
 } from "@chakra-ui/react";
+import { DeleteIcon } from "@chakra-ui/icons";
+import { productService } from "../services/productService";
 
 interface Product {
   id: string;
@@ -30,13 +42,55 @@ interface UserProductsTableProps {
   products: Product[];
   loading?: boolean;
   error?: string;
+  onProductDeleted?: () => void;
 }
 
 const UserProductsTable: React.FC<UserProductsTableProps> = ({
   products,
   loading = false,
   error,
+  onProductDeleted,
 }) => {
+  const toast = useToast();
+  const [deleteProductId, setDeleteProductId] = React.useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = React.useRef<HTMLButtonElement>(null);
+
+  const handleDeleteClick = (productId: string) => {
+    setDeleteProductId(productId);
+    onOpen();
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteProductId) return;
+
+    setIsDeleting(true);
+    try {
+      await productService.deleteProduct(deleteProductId);
+      toast({
+        title: "Product deleted",
+        description: "The product has been successfully deleted.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      onProductDeleted?.(); // Refresh the products list
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Error deleting product",
+        description: "There was an error deleting the product. Please try again.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteProductId(null);
+      onClose();
+    }
+  };
   // Debug: Print image URLs to console
   React.useEffect(() => {
     console.log("UserProductsTable - Products received:", products);
@@ -124,6 +178,7 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
             <Th>Product Name</Th>
             <Th>Description</Th>
             <Th>Product ID</Th>
+            <Th>Actions</Th>
           </Tr>
         </Thead>
         <Tbody>
@@ -192,10 +247,53 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
                   {product.product_id}
                 </Text>
               </Td>
+              <Td>
+                <IconButton
+                  aria-label="Delete product"
+                  icon={<DeleteIcon />}
+                  size="sm"
+                  colorScheme="red"
+                  variant="ghost"
+                  onClick={() => handleDeleteClick(product.id)}
+                />
+              </Td>
             </Tr>
           ))}
         </Tbody>
       </Table>
+      
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Product
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure you want to delete this product? This action cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                colorScheme="red"
+                onClick={handleDeleteConfirm}
+                ml={3}
+                isLoading={isDeleting}
+                loadingText="Deleting..."
+              >
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </TableContainer>
   );
 };

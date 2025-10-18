@@ -85,7 +85,8 @@ const Home: React.FC = () => {
             <UserProductsTable 
               products={products} 
               loading={loading} 
-              error={error} 
+              error={error}
+              onProductDeleted={refreshProducts}
             />
           </Box>
         </Flex>

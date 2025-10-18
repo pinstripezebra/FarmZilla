@@ -49,6 +49,17 @@ export const productService = {
       console.error('Error uploading file:', error);
       throw error;
     }
+  },
+
+  // Delete a product
+  deleteProduct: async (productId: string): Promise<{ message: string }> => {
+    try {
+      const response = await api.delete(`/v1/products/${productId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      throw error;
+    }
   }
 };
 
