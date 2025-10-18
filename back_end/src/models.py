@@ -49,6 +49,7 @@ class Product(Base):
     product_name = Column(String, nullable=False)
     description = Column(String, nullable=False)
     image_url = Column(String, nullable=True)  # URL to S3 image
+    user_id = Column(pg.UUID(as_uuid=True), nullable=True)  # Link to user who created the product
 
 class ProductModel(BaseModel):
     id: Optional[UUID] = None
@@ -56,6 +57,7 @@ class ProductModel(BaseModel):
     product_name: str
     description: str
     image_url: Optional[str] = None  # URL to S3 image
+    user_id: Optional[UUID] = None  # Link to user who created the product
     class Config:
         orm_mode = True
         from_attributes = True

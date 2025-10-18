@@ -131,7 +131,7 @@ function Login() {
 
           {/* App Title */}
           <Text fontSize="2xl" fontWeight="bold" color="teal.700">
-            Optigame
+            Farmzilla
           </Text>
         </HStack>
       </Box>

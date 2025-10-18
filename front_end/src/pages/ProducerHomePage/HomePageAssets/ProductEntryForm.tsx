@@ -3,20 +3,24 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton,
   ModalBody, ModalFooter, Button, FormControl, FormLabel, Input, Textarea, useToast
 } from "@chakra-ui/react";
-import api from "../../../services/apli-client";
+import { useUser } from "../../../context/UserContex";
+import { productService } from "../../../services/productService";
 
 interface ProductEntryFormProps {
   isOpen: boolean;
   onClose: () => void;
+  onProductAdded?: () => void;
 }
 
 // ...existing imports...
 
-const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose }) => {
+const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose, onProductAdded }) => {
   const [image, setImage] = useState<File | null>(null);
   const [product_name, setProductName] = useState("");
   const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
+  const { user } = useUser();
 
   // Get bucket name from frontend .env (VITE_AWS_BUCKET_NAME)
   const bucketName = import.meta.env.VITE_AWS_BUCKET_NAME as string;
@@ -32,6 +36,19 @@ const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!user?.id) {
+      toast({
+        title: "Authentication Error",
+        description: "User not authenticated. Please log in again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
       // 1. Upload image to S3 with username in the key
       let imageUrl = "";
@@ -40,18 +57,17 @@ const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose }) 
         // Rename the file for S3 key
         const s3Key = `${username}_${image.name}`;
         formData.append("file", image, s3Key);
-        await api.post("/v1/uploadfile/", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
-        });
+        await productService.uploadFile(formData);
         imageUrl = `https://${bucketName}.s3.amazonaws.com/${s3Key}`;
       }
 
-      // 2. Send product data including image_url to backend
-      await api.post("/v1/products/", {
+      // 2. Send product data including image_url and user_id to backend
+      await productService.createProduct({
         product_id: "", // Let backend generate this
         product_name,
         description,
-        image_url: imageUrl // Include the S3 URL
+        image_url: imageUrl,
+        user_id: user.id // Include the user ID
       });
 
       toast({
@@ -60,18 +76,29 @@ const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose }) 
         duration: 3000,
         isClosable: true,
       });
+      
+      // Clear form
       setImage(null);
       setProductName("");
       setDescription("");
+      
+      // Call the callback to refresh the products list
+      if (onProductAdded) {
+        onProductAdded();
+      }
+      
       onClose();
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || error.message || "Failed to submit product";
       toast({
         title: "Submission failed.",
-        description: "Please try again.",
+        description: errorMessage,
         status: "error",
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -107,7 +134,14 @@ const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose }) 
             </FormControl>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="teal" mr={3} type="submit" disabled={!isSubmitEnabled}>
+            <Button 
+              colorScheme="teal" 
+              mr={3} 
+              type="submit" 
+              disabled={!isSubmitEnabled || isSubmitting}
+              isLoading={isSubmitting}
+              loadingText="Submitting..."
+            >
               Submit
             </Button>
             <Button variant="ghost" onClick={onClose}>

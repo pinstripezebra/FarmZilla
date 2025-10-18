@@ -112,6 +112,19 @@ async def fetch_products(product_id: str = None, db: Session = Depends(get_db)):
         products = db.query(Product).all()
     return [ProductModel.from_orm(product) for product in products]
 
+@app.get("/api/v1/products/user/{user_id}")
+async def fetch_user_products(user_id: str, db: Session = Depends(get_db)):
+    """Fetch all products for a specific user"""
+    try:
+        # Convert string to UUID
+        user_uuid = UUID(user_id)
+        products = db.query(Product).filter(Product.user_id == user_uuid).all()
+        return [ProductModel.from_orm(product) for product in products]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching products: {str(e)}")
+
 @app.get("/api/v1/producer_consumer_matches/")
 async def fetch_producer_consumer_matches(match_id: str = None, db: Session = Depends(get_db)):
     if match_id:
@@ -179,10 +192,13 @@ async def create_user(user: UserModel, db: Session = Depends(get_db)):
 # for creating a new product
 @app.post("/api/v1/products/")
 async def create_product(product: ProductModel, db: Session = Depends(get_db)):
-    # Check if the entry already exists
-    existing = db.query(Product).filter_by(product_name=product.product_name).first()
+    # Check if the entry already exists for this user
+    existing = db.query(Product).filter_by(
+        product_name=product.product_name, 
+        user_id=product.user_id
+    ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Product already exists.")
+        raise HTTPException(status_code=400, detail="Product with this name already exists for this user.")
 
     # Generate a unique product_id if not provided or if it's the placeholder
     if not product.product_id or product.product_id == "test_id":

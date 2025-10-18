@@ -2,7 +2,11 @@ import React from "react";
 import { Box, VStack, Text, Divider, Button, useDisclosure } from "@chakra-ui/react";
 import ProductEntryForm from "./ProductEntryForm";
 
-const ProducerSupplyBar: React.FC = () => {
+interface ProducerSupplyBarProps {
+  onProductAdded?: () => void;
+}
+
+const ProducerSupplyBar: React.FC<ProducerSupplyBarProps> = ({ onProductAdded }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   return (
@@ -18,7 +22,7 @@ const ProducerSupplyBar: React.FC = () => {
           Add Products
         </Button>
       </VStack>
-      <ProductEntryForm isOpen={isOpen} onClose={onClose} />
+      <ProductEntryForm isOpen={isOpen} onClose={onClose} onProductAdded={onProductAdded} />
     </Box>
   );
 };

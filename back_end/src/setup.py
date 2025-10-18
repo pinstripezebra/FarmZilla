@@ -44,7 +44,8 @@ products_table_creation_query = """CREATE TABLE IF NOT EXISTS products (
     product_id VARCHAR(255) UNIQUE NOT NULL,
     product_name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    image_url TEXT
+    image_url TEXT,
+    user_id UUID
     )
     """
 
@@ -77,6 +78,10 @@ if 'id' not in producer_consumer_matches.columns:
 # Add image_url column to products dataframe with empty values for initial data
 if 'image_url' not in products.columns:
     products['image_url'] = None  # or empty string '' if preferred
+
+# Add user_id column to products dataframe with empty values for initial data  
+if 'user_id' not in products.columns:
+    products['user_id'] = None  # Will be None for existing products
 
 
 # Populates the 4 tables with data from the dataframes
