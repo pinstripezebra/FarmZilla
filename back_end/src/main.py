@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from dotenv import load_dotenv
 import os
 import boto3
+from botocore.exceptions import ClientError
 
 # Load environment variables
 load_dotenv()
@@ -274,3 +275,72 @@ def verify_token(token: str = Depends(oauth2_scheme)):
         return payload
     except jwt.JWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+    
+#-------------------------------------------------#
+# -----------PART 4: DELETE METHODS---------------#
+#-------------------------------------------------#
+
+@app.delete("/api/v1/products/user/{user_id}/{product_id}")
+async def delete_user_product(user_id: str, product_id: str, db: Session = Depends(get_db)):
+    """
+    Delete a product from the database for a specific user (with additional security)
+    """
+    try:
+        # Convert string to UUID for user_id
+        user_uuid = UUID(user_id)
+        
+        # Find the product in the database for the specific user
+        product = db.query(Product).filter(
+            Product.product_id == product_id,
+            Product.user_id == user_uuid
+        ).first()
+        
+        if not product:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Product with ID '{product_id}' not found for user '{user_id}'"
+            )
+        
+        # Store image_url before deleting the product
+        image_url = product.image_url
+        
+        # Delete the product from the database
+        db.delete(product)
+        db.commit()
+        
+        # Delete the image from S3 if it exists
+        s3_deletion_status = "No image to delete"
+        if image_url:
+            try:
+                # Extract the S3 key from the image URL
+                s3_key = image_url.split('amazonaws.com/')[-1]
+                
+                # Delete the object from S3
+                s3.delete_object(Bucket=AWS_BUCKET_NAME, Key=s3_key)
+                s3_deletion_status = f"Image '{s3_key}' deleted from S3"
+                
+            except ClientError as e:
+                error_code = e.response['Error']['Code']
+                if error_code == 'NoSuchKey':
+                    s3_deletion_status = f"Image was already missing from S3"
+                else:
+                    s3_deletion_status = f"Failed to delete image from S3: {str(e)}"
+            except Exception as e:
+                s3_deletion_status = f"Error processing S3 deletion: {str(e)}"
+        
+        return {
+            "message": f"Product '{product_id}' deleted successfully for user '{user_id}'",
+            "product_name": product.product_name,
+            "s3_status": s3_deletion_status
+        }
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error deleting product: {str(e)}"
+        )
