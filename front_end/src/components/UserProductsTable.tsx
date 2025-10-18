@@ -43,6 +43,7 @@ interface UserProductsTableProps {
   loading?: boolean;
   error?: string;
   onProductDeleted?: () => void;
+  userId: string;
 }
 
 const UserProductsTable: React.FC<UserProductsTableProps> = ({
@@ -50,6 +51,7 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
   loading = false,
   error,
   onProductDeleted,
+  userId,
 }) => {
   const toast = useToast();
   const [deleteProductId, setDeleteProductId] = React.useState<string | null>(null);
@@ -67,7 +69,7 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
 
     setIsDeleting(true);
     try {
-      await productService.deleteProduct(deleteProductId);
+      await productService.deleteProduct(userId, deleteProductId);
       toast({
         title: "Product deleted",
         description: "The product has been successfully deleted.",
@@ -254,7 +256,7 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
                   size="sm"
                   colorScheme="red"
                   variant="ghost"
-                  onClick={() => handleDeleteClick(product.id)}
+                  onClick={() => handleDeleteClick(product.product_id)}
                 />
               </Td>
             </Tr>

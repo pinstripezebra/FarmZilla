@@ -52,9 +52,9 @@ export const productService = {
   },
 
   // Delete a product
-  deleteProduct: async (productId: string): Promise<{ message: string }> => {
+  deleteProduct: async (userId: string, productId: string): Promise<{ message: string }> => {
     try {
-      const response = await api.delete(`/v1/products/${productId}`);
+      const response = await api.delete(`/v1/products/user/${userId}/${productId}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting product:', error);

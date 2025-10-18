@@ -87,6 +87,7 @@ const Home: React.FC = () => {
               loading={loading} 
               error={error}
               onProductDeleted={refreshProducts}
+              userId={user?.id || ""}
             />
           </Box>
         </Flex>
