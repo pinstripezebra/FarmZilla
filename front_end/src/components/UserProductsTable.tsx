@@ -37,6 +37,47 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
   loading = false,
   error,
 }) => {
+  // Debug: Print image URLs to console
+  React.useEffect(() => {
+    console.log("UserProductsTable - Products received:", products);
+    products.forEach((product, index) => {
+      console.log(`Product ${index + 1} (${product.product_name}):`, {
+        id: product.id,
+        product_id: product.product_id,
+        image_url: product.image_url,
+        has_image: !!product.image_url
+      });
+      
+      // Test if we can fetch the image
+      if (product.image_url) {
+        console.log(`Testing image access for: ${product.image_url}`);
+        fetch(product.image_url, { method: 'HEAD' })
+          .then(response => {
+            console.log(`Image ${product.product_name} - Status: ${response.status}`);
+            if (!response.ok) {
+              console.error(`Image access failed for ${product.product_name}:`, response.status, response.statusText);
+            }
+          })
+          .catch(error => {
+            console.error(`Image fetch error for ${product.product_name}:`, error);
+          });
+      }
+    });
+  }, [products]);
+
+  const handleImageError = (product: Product) => {
+    console.error(`Failed to load image for ${product.product_name}:`, product.image_url);
+    console.log('Image error details:', {
+      url: product.image_url,
+      product: product.product_name,
+      timestamp: new Date().toISOString()
+    });
+  };
+
+  const handleImageLoad = (product: Product) => {
+    console.log(`Successfully loaded image for ${product.product_name}:`, product.image_url);
+  };
+
   if (loading) {
     return (
       <Box p={4}>
@@ -98,6 +139,8 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
                       height="80px"
                       objectFit="cover"
                       borderRadius="md"
+                      onError={() => handleImageError(product)}
+                      onLoad={() => handleImageLoad(product)}
                       fallback={
                         <Box
                           width="80px"
@@ -109,7 +152,7 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
                           borderRadius="md"
                         >
                           <Text fontSize="xs" color="gray.500">
-                            No Image
+                            Loading...
                           </Text>
                         </Box>
                       }
