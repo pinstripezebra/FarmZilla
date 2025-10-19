@@ -21,6 +21,17 @@ export const productService = {
     }
   },
 
+  // Get all products (marketplace view)
+  getAllProducts: async (): Promise<Product[]> => {
+    try {
+      const response = await api.get('/v1/products/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching all products:', error);
+      throw error;
+    }
+  },
+
   // Create a new product
   createProduct: async (productData: {
     product_id: string;
