@@ -97,9 +97,11 @@ async def root():
 
 
 @app.get("/api/v1/user/")
-async def fetch_users(user_id: str = None, db: Session = Depends(get_db)):
+async def fetch_users(user_id: str = None, username: str = None, db: Session = Depends(get_db)):
     if user_id:
         users = db.query(User).filter(User.id == user_id).all()
+    elif username:
+        users = db.query(User).filter(User.username == username).all()
     else:
         users = db.query(User).all()
     return [UserModel.from_orm(user) for user in users]

@@ -31,7 +31,7 @@ export interface User {
   username: string;
   password: string;
   email: string;
-  role: number;
+  role: string;
 }
 
 export interface UserGame {
@@ -85,16 +85,32 @@ function Login() {
         localStorage.setItem("token", data.access_token);
         // Fetch user data after login
         const userRes = await api.get(`/v1/user/?username=${localUsername}`);
+        console.log("User data response:", userRes.data);
+        
+        if (!userRes.data || userRes.data.length === 0) {
+          throw new Error("User data not found");
+        }
+        
         const userData = userRes.data[0];
         setUser(userData);
+        
         // Optionally, store username for legacy code
         localStorage.setItem("username", userData.username);
+        
+        console.log("User role:", userData.role);
+        
         // Route based on role
         if (userData.role === "consumer") {
+          console.log("Redirecting to ConsumerHomePage");
           navigate("/ConsumerHomePage");
+        } else if (userData.role === "producer") {
+          console.log("Redirecting to ProducerHomePage");
+          navigate("/");
         } else {
+          console.warn("Unknown role:", userData.role, "defaulting to producer page");
           navigate("/");
         }
+        
         console.log("Login successful:", data.access_token);
       }
     } catch (error: any) {
