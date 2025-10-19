@@ -16,6 +16,7 @@ import {
   Input,
   InputRightElement,
   Button,
+  ButtonGroup,
   Link,
   Image,
   Text,
@@ -34,6 +35,7 @@ const Signup = () => {
   const toast = useToast();
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [role, setRole] = useState("consumer"); // Default to consumer
 
   const handleShowClick = () => setShowPassword(!showPassword);
   const handleShowConfirmClick = () =>
@@ -72,7 +74,7 @@ const Signup = () => {
         email,
         username,
         password,
-        role: "producer" // default role,
+        role: role // Use selected role
       });
       toast({
         title: "Account created successfully!",
@@ -131,7 +133,7 @@ const Signup = () => {
           <Image src={logo} boxSize="60px" borderRadius={10} />
           {/* App Title */}
           <Text fontSize="2xl" fontWeight="bold" color="teal.700">
-            Optigame
+            FarmZilla
           </Text>
         </HStack>
       </Box>
@@ -232,6 +234,31 @@ const Signup = () => {
                     </Button>
                   </InputRightElement>
                 </InputGroup>
+              </FormControl>
+
+              {/* Role Selection */}
+              <FormControl>
+                <Text mb={2} fontSize="sm" color="gray.600" textAlign="center">
+                  Select your role:
+                </Text>
+                <ButtonGroup size="md" isAttached variant="outline" width="full">
+                  <Button
+                    colorScheme={role === "consumer" ? "teal" : "gray"}
+                    variant={role === "consumer" ? "solid" : "outline"}
+                    onClick={() => setRole("consumer")}
+                    width="50%"
+                  >
+                    Consumer
+                  </Button>
+                  <Button
+                    colorScheme={role === "producer" ? "teal" : "gray"}
+                    variant={role === "producer" ? "solid" : "outline"}
+                    onClick={() => setRole("producer")}
+                    width="50%"
+                  >
+                    Producer
+                  </Button>
+                </ButtonGroup>
               </FormControl>
 
               {/* Signup Button */}

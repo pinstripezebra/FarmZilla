@@ -162,6 +162,13 @@ async def create_user(user: UserModel, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="User already exists.")
 
+    # Validate role
+    if user.role not in ["producer", "consumer"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid role. Role must be either 'producer' or 'consumer'."
+        )
+
     # Ensure password is not longer than 72 bytes for bcrypt
     password_bytes = user.password.encode('utf-8')
     if len(password_bytes) > 72:
