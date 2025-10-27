@@ -74,11 +74,6 @@ const Customers: React.FC = () => {
     navigate("/");
   };
 
-  // Function to refresh customers (can be called from sidebar)
-  const refreshCustomers = () => {
-    fetchCustomers();
-  };
-
   const renderCustomersList = () => {
     if (loading) {
       return (
@@ -139,26 +134,40 @@ const Customers: React.FC = () => {
   return (
     <Flex height="100vh" direction="column">
       {/* Top Bar */}
-      <Flex bg="teal.600" color="white" align="center" height="60px" px={6} boxShadow="md">
+      <Flex bg="teal.600" color="white" align="center" justify="space-between" height="60px" px={6} boxShadow="md">
         <Text fontWeight="bold" fontSize="lg">{username}</Text>
+        <Button 
+          bg="white" 
+          color="teal.600" 
+          variant="solid" 
+          onClick={handleLogout}
+          _hover={{
+            bg: "gray.100",
+            transform: "translateY(-1px)",
+            boxShadow: "md"
+          }}
+          _active={{
+            bg: "gray.200",
+            transform: "translateY(0)"
+          }}
+        >
+          Logout
+        </Button>
       </Flex>
       
       <Flex flex="1" direction="row">
         {/* Sidebar */}
-        <ProducerSupplyBar onProductAdded={refreshCustomers} showAddProducts={false} />
+        <ProducerSupplyBar activePage="customers" />
         
         {/* Main Content */}
         <Flex flex="1" direction="column" p={6}>
-          <Flex justify="space-between" align="center" mb={6}>
+          <Flex justify="flex-start" align="center" mb={6}>
             <Flex align="center" gap={4}>
               <Button variant="outline" colorScheme="teal" onClick={handleBack}>
                 ← Back to Products
               </Button>
               <Heading color="teal.600" size="lg">My Customers</Heading>
             </Flex>
-            <Button colorScheme="teal" onClick={handleLogout}>
-              Logout
-            </Button>
           </Flex>
           
           {/* Customers List */}

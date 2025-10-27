@@ -1,18 +1,14 @@
 import React from "react";
-import { Box, VStack, Text, Divider, Button, useDisclosure } from "@chakra-ui/react";
+import { Box, VStack, Text, Divider, Button } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import ProductEntryForm from "./ProductEntryForm";
 
 interface ProducerSupplyBarProps {
-  onProductAdded?: () => void;
-  showAddProducts?: boolean; // New prop to control Add Products button visibility
+  activePage?: 'products' | 'customers'; // New prop to track active page
 }
 
 const ProducerSupplyBar: React.FC<ProducerSupplyBarProps> = ({ 
-  onProductAdded, 
-  showAddProducts = true 
+  activePage = 'products'
 }) => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
 
   const handleCustomersClick = () => {
@@ -27,13 +23,18 @@ const ProducerSupplyBar: React.FC<ProducerSupplyBarProps> = ({
     <Box width="220px" bg="gray.100" p={4} boxShadow="md">
       <VStack align="stretch" spacing={4}>
         <Button 
-          variant="ghost" 
+          variant={activePage === 'products' ? "solid" : "ghost"}
           colorScheme="teal" 
           fontWeight="bold" 
           fontSize="md" 
           justifyContent="flex-start" 
           p={0}
           onClick={handleProductsClick}
+          bg={activePage === 'products' ? "teal.500" : "transparent"}
+          color={activePage === 'products' ? "white" : "teal.600"}
+          _hover={{
+            bg: activePage === 'products' ? "teal.600" : "teal.50"
+          }}
         >
           Products
         </Button>
@@ -41,24 +42,23 @@ const ProducerSupplyBar: React.FC<ProducerSupplyBarProps> = ({
         <Text fontWeight="bold" fontSize="md" color="teal.700">Deals</Text>
         <Divider />
         <Button 
-          variant="ghost" 
+          variant={activePage === 'customers' ? "solid" : "ghost"}
           colorScheme="teal" 
           fontWeight="bold" 
           fontSize="md" 
           justifyContent="flex-start" 
           p={0}
           onClick={handleCustomersClick}
+          bg={activePage === 'customers' ? "teal.500" : "transparent"}
+          color={activePage === 'customers' ? "white" : "teal.600"}
+          _hover={{
+            bg: activePage === 'customers' ? "teal.600" : "teal.50"
+          }}
         >
           Customers
         </Button>
         <Divider />
-        {showAddProducts && (
-          <Button colorScheme="teal" variant="solid" onClick={onOpen}>
-            Add Products
-          </Button>
-        )}
       </VStack>
-      <ProductEntryForm isOpen={isOpen} onClose={onClose} onProductAdded={onProductAdded} />
     </Box>
   );
 };
