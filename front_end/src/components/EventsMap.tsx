@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Box, VStack, Card, CardBody, Heading, Text, Grid, GridItem, Spinner, Alert, AlertIcon, Button, HStack, useToast } from '@chakra-ui/react';
+import { 
+  Box, VStack, Card, CardBody, Heading, Text, Grid, GridItem, Spinner, Alert, AlertIcon, 
+  Button, HStack, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, 
+  AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure 
+} from '@chakra-ui/react';
 import { eventService, type Event, type EventVendor } from '../services/eventService';
 import { useUser } from '../context/UserContex';
 
@@ -18,9 +22,13 @@ const EventsMap: React.FC<EventsMapProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [signupLoading, setSignupLoading] = useState<string>("");
+  const [withdrawLoading, setWithdrawLoading] = useState<string>("");
+  const [eventToWithdraw, setEventToWithdraw] = useState<string>("");
   
   const { user } = useUser();
   const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = React.useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const fetchEventsAndUserData = async () => {
@@ -120,6 +128,51 @@ const EventsMap: React.FC<EventsMapProps> = ({
     return userEventVendors.some(vendor => vendor.event_id === eventId);
   };
 
+  const handleWithdrawFromEvent = (eventId: string) => {
+    setEventToWithdraw(eventId);
+    onOpen();
+  };
+
+  const confirmWithdraw = async () => {
+    if (!user?.id || !eventToWithdraw) return;
+
+    try {
+      setWithdrawLoading(eventToWithdraw);
+      await eventService.deleteEventVendor(eventToWithdraw, user.id);
+      
+      // Refresh the data
+      const updatedUserEventVendors = await eventService.getEventVendorsByConsumerId(user.id);
+      setUserEventVendors(updatedUserEventVendors);
+      
+      const updatedUserEvents = events.filter(event => 
+        updatedUserEventVendors.some(vendor => vendor.event_id === event.event_id)
+      );
+      setUserEvents(updatedUserEvents);
+
+      toast({
+        title: "Successfully Withdrawn",
+        description: "You've been removed from the event",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      onClose();
+      setEventToWithdraw("");
+    } catch (err: any) {
+      console.error('Error withdrawing from event:', err);
+      toast({
+        title: "Withdrawal Failed",
+        description: "Failed to withdraw from event. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setWithdrawLoading("");
+    }
+  };
+
   const renderEventsContent = () => {
     if (loading) {
       return (
@@ -170,9 +223,21 @@ const EventsMap: React.FC<EventsMapProps> = ({
                 <Card key={`user-${event.event_id}`} variant="outline" size="sm" bg="teal.50" borderColor="teal.200">
                   <CardBody>
                     <VStack align="start" spacing={2}>
-                      <Heading size="sm" color="teal.600">
-                        {event.name}
-                      </Heading>
+                      <HStack justify="space-between" width="100%">
+                        <Heading size="sm" color="teal.600">
+                          {event.name}
+                        </Heading>
+                        <Button
+                          size="sm"
+                          colorScheme="red"
+                          variant="solid"
+                          isLoading={withdrawLoading === event.event_id}
+                          loadingText="Withdrawing..."
+                          onClick={() => handleWithdrawFromEvent(event.event_id)}
+                        >
+                          Withdraw
+                        </Button>
+                      </HStack>
                       <Text fontSize="sm" fontWeight="bold" color="gray.700">
                         📅 {event.date}
                       </Text>
@@ -256,45 +321,81 @@ const EventsMap: React.FC<EventsMapProps> = ({
   };
 
   return (
-    <Box height={height} width={width} borderRadius="md" overflow="hidden" boxShadow="md">
-      <Grid templateColumns="1fr 1fr" height="100%">
-        {/* Map Section */}
-        <GridItem>
-          <Box height="100%" position="relative">
-            <iframe
-              src={mapUrl}
-              style={{
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                borderRadius: '8px 0 0 8px'
-              }}
-              title="Events Map"
-            />
-            <Box
-              position="absolute"
-              top={2}
-              left={2}
-              bg="white"
-              px={2}
-              py={1}
-              borderRadius="md"
-              boxShadow="sm"
-              fontSize="xs"
-              fontWeight="bold"
-              color="teal.600"
-            >
-              📍 Event Locations
+    <>
+      <Box height={height} width={width} borderRadius="md" overflow="hidden" boxShadow="md">
+        <Grid templateColumns="1fr 1fr" height="100%">
+          {/* Map Section */}
+          <GridItem>
+            <Box height="100%" position="relative">
+              <iframe
+                src={mapUrl}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  borderRadius: '8px 0 0 8px'
+                }}
+                title="Events Map"
+              />
+              <Box
+                position="absolute"
+                top={2}
+                left={2}
+                bg="white"
+                px={2}
+                py={1}
+                borderRadius="md"
+                boxShadow="sm"
+                fontSize="xs"
+                fontWeight="bold"
+                color="teal.600"
+              >
+                📍 Event Locations
+              </Box>
             </Box>
-          </Box>
-        </GridItem>
+          </GridItem>
 
-        {/* Events List Section */}
-        <GridItem bg="gray.50" p={4}>
-          {renderEventsContent()}
-        </GridItem>
-      </Grid>
-    </Box>
+          {/* Events List Section */}
+          <GridItem bg="gray.50" p={4}>
+            {renderEventsContent()}
+          </GridItem>
+        </Grid>
+      </Box>
+
+      {/* Withdraw Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Remove from Event
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure you want to remove yourself from this event? This action cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                colorScheme="red" 
+                onClick={confirmWithdraw} 
+                ml={3}
+                isLoading={withdrawLoading === eventToWithdraw}
+                loadingText="Removing..."
+              >
+                Yes, Remove
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </>
   );
 };
 
