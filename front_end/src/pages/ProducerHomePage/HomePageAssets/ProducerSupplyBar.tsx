@@ -1,9 +1,9 @@
 import React from "react";
-import { Box, VStack, Text, Divider, Button } from "@chakra-ui/react";
+import { Box, VStack, Divider, Button } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 
 interface ProducerSupplyBarProps {
-  activePage?: 'products' | 'customers'; // New prop to track active page
+  activePage?: 'products' | 'customers' | 'events'; // Updated to include events page
 }
 
 const ProducerSupplyBar: React.FC<ProducerSupplyBarProps> = ({ 
@@ -17,6 +17,10 @@ const ProducerSupplyBar: React.FC<ProducerSupplyBarProps> = ({
 
   const handleProductsClick = () => {
     navigate("/");
+  };
+
+  const handleEventsClick = () => {
+    navigate("/UpcomingEvents");
   };
 
   return (
@@ -39,7 +43,22 @@ const ProducerSupplyBar: React.FC<ProducerSupplyBarProps> = ({
           Products
         </Button>
         <Divider />
-        <Text fontWeight="bold" fontSize="md" color="teal.700">Deals</Text>
+        <Button 
+          variant={activePage === 'events' ? "solid" : "ghost"}
+          colorScheme="teal" 
+          fontWeight="bold" 
+          fontSize="md" 
+          justifyContent="flex-start" 
+          p={0}
+          onClick={handleEventsClick}
+          bg={activePage === 'events' ? "teal.500" : "transparent"}
+          color={activePage === 'events' ? "white" : "teal.600"}
+          _hover={{
+            bg: activePage === 'events' ? "teal.600" : "teal.50"
+          }}
+        >
+          Upcoming Events
+        </Button>
         <Divider />
         <Button 
           variant={activePage === 'customers' ? "solid" : "ghost"}
