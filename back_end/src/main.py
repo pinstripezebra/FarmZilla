@@ -35,8 +35,19 @@ AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
 # secure the API with OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# creating connection to the database
-engine = create_engine(DATABASE_URL)
+# creating connection to the database with connection pooling and timeouts
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=30,
+    pool_recycle=3600,  # Recycle connections after 1 hour
+    pool_pre_ping=True,  # Validate connections before use
+    connect_args={
+        "connect_timeout": 10,
+        "options": "-c timezone=utc"
+    }
+)
 s3 = boto3.client('s3')
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -129,12 +140,38 @@ async def fetch_user_products(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error fetching products: {str(e)}")
 
 @app.get("/api/v1/producer_consumer_matches/")
-async def fetch_producer_consumer_matches(match_id: str = None, db: Session = Depends(get_db)):
-    if match_id:
-        matches = db.query(ProducerConsumerMatch).filter(ProducerConsumerMatch.id == match_id).all()
-    else:
-        matches = db.query(ProducerConsumerMatch).all()
-    return [ProducerConsumerMatchModel.from_orm(match) for match in matches]
+async def fetch_producer_consumer_matches(
+    match_id: str = None, 
+    producer_id: str = None, 
+    consumer_id: str = None, 
+    db: Session = Depends(get_db)
+):
+    """
+    Fetch producer-consumer matches with optional filters:
+    - match_id: specific match by ID
+    - producer_id: all matches for a specific producer
+    - consumer_id: all matches for a specific consumer
+    - no parameters: all matches
+    """
+    try:
+        query = db.query(ProducerConsumerMatch)
+        
+        if match_id:
+            # Convert string to UUID for match_id
+            match_uuid = UUID(match_id)
+            query = query.filter(ProducerConsumerMatch.id == match_uuid)
+        elif producer_id:
+            query = query.filter(ProducerConsumerMatch.producer_id == producer_id)
+        elif consumer_id:
+            query = query.filter(ProducerConsumerMatch.consumer_id == consumer_id)
+        
+        matches = query.all()
+        return [ProducerConsumerMatchModel.from_orm(match) for match in matches]
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching producer-consumer matches: {str(e)}")
 
 @app.get("/api/v1/users/all")
 async def get_all_users(db: Session = Depends(get_db)):
@@ -248,6 +285,51 @@ async def upload_file_to_s3(file: UploadFile | None = None):
         return {"message": "File uploaded successfully"}
     except Exception as e:
         return {"error": str(e)}
+
+# for creating producer-consumer matches
+@app.post("/api/v1/producer_consumer_matches/")
+async def create_producer_consumer_match(producer_id: str, consumer_id: str, db: Session = Depends(get_db)):
+    """
+    Create a new producer-consumer match
+    """
+    try:
+        # Check if the match already exists
+        existing_match = db.query(ProducerConsumerMatch).filter(
+            ProducerConsumerMatch.producer_id == producer_id,
+            ProducerConsumerMatch.consumer_id == consumer_id
+        ).first()
+        
+        if existing_match:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Match between producer '{producer_id}' and consumer '{consumer_id}' already exists"
+            )
+        
+        # Create new match
+        new_match = ProducerConsumerMatch(
+            producer_id=producer_id,
+            consumer_id=consumer_id
+        )
+        
+        db.add(new_match)
+        db.commit()
+        db.refresh(new_match)
+        
+        return {
+            "message": f"Producer-consumer match created successfully",
+            "match_id": str(new_match.id),
+            "producer_id": producer_id,
+            "consumer_id": consumer_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error creating producer-consumer match: {str(e)}"
+        )
     
 
 #-------------------------------------------------#
@@ -352,4 +434,42 @@ async def delete_user_product(user_id: str, product_id: str, db: Session = Depen
         raise HTTPException(
             status_code=500, 
             detail=f"Error deleting product: {str(e)}"
+        )
+
+@app.delete("/api/v1/producer_consumer_matches/")
+async def delete_producer_consumer_match(producer_id: str, consumer_id: str, db: Session = Depends(get_db)):
+    """
+    Delete a producer-consumer match by producer_id and consumer_id
+    """
+    try:
+        # Find the match to delete
+        match = db.query(ProducerConsumerMatch).filter(
+            ProducerConsumerMatch.producer_id == producer_id,
+            ProducerConsumerMatch.consumer_id == consumer_id
+        ).first()
+        
+        if not match:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No match found between producer '{producer_id}' and consumer '{consumer_id}'"
+            )
+        
+        # Delete the match
+        db.delete(match)
+        db.commit()
+        
+        return {
+            "message": f"Producer-consumer match deleted successfully",
+            "producer_id": producer_id,
+            "consumer_id": consumer_id,
+            "deleted_match_id": str(match.id)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error deleting producer-consumer match: {str(e)}"
         )
