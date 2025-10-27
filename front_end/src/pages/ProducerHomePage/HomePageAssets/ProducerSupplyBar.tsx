@@ -1,9 +1,10 @@
 import React from "react";
-import { Box, VStack, Divider, Button } from "@chakra-ui/react";
+import { Box, VStack, Divider, Button, Icon } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
+import { EmailIcon } from "@chakra-ui/icons";
 
 interface ProducerSupplyBarProps {
-  activePage?: 'products' | 'customers' | 'events'; // Updated to include events page
+  activePage?: 'products' | 'customers' | 'events' | 'newsletter'; // Updated to include newsletter page
 }
 
 const ProducerSupplyBar: React.FC<ProducerSupplyBarProps> = ({ 
@@ -21,6 +22,10 @@ const ProducerSupplyBar: React.FC<ProducerSupplyBarProps> = ({
 
   const handleEventsClick = () => {
     navigate("/UpcomingEvents");
+  };
+
+  const handleNewsletterClick = () => {
+    navigate("/Newsletter");
   };
 
   return (
@@ -75,6 +80,24 @@ const ProducerSupplyBar: React.FC<ProducerSupplyBarProps> = ({
           }}
         >
           Customers
+        </Button>
+        <Divider />
+        <Button 
+          variant={activePage === 'newsletter' ? "solid" : "ghost"}
+          colorScheme="teal" 
+          fontWeight="bold" 
+          fontSize="md" 
+          justifyContent="flex-start" 
+          p={0}
+          onClick={handleNewsletterClick}
+          bg={activePage === 'newsletter' ? "teal.500" : "transparent"}
+          color={activePage === 'newsletter' ? "white" : "teal.600"}
+          _hover={{
+            bg: activePage === 'newsletter' ? "teal.600" : "teal.50"
+          }}
+          leftIcon={<EmailIcon />}
+        >
+          Send Newsletter
         </Button>
         <Divider />
       </VStack>

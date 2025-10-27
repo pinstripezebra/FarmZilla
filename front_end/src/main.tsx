@@ -11,6 +11,7 @@ import { UserProvider } from "./context/UserContex";
 import HomePage from "./pages/ProducerHomePage/Home";
 import Customers from "./pages/ProducerHomePage/Customers";
 import UpcomingEvents from "./pages/ProducerHomePage/UpcomingEvents";
+import Newsletter from "./pages/ProducerHomePage/Newsletter";
 import ConsumerHomePage from "./pages/ConsumerHomePage/ConsumerHome";
 import LandingPage from "./pages/LandingPage/LandingPage";
 import NotFoundPage from "./pages/NotFoundPage/NotFoundPage";
@@ -64,6 +65,15 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <Customers />
+      </ProtectedRoute>
+    ),
+    errorElement: <NotFoundPage />,
+  },
+  {
+    path: "/Newsletter",
+    element: (
+      <ProtectedRoute>
+        <Newsletter />
       </ProtectedRoute>
     ),
     errorElement: <NotFoundPage />,
