@@ -24,7 +24,9 @@ from datetime import datetime, timedelta
 from .models import (
     User, UserModel,
     Product, ProductModel,
-    ProducerConsumerMatch, ProducerConsumerMatchModel
+    ProducerConsumerMatch, ProducerConsumerMatchModel,
+    Event, EventModel,
+    EventVendor, EventVendorModel
 )
 
 
@@ -178,6 +180,44 @@ async def get_all_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
     return [UserModel.from_orm(user) for user in users]
 
+@app.get("/api/v1/events/")
+async def fetch_events(event_id: str = None, db: Session = Depends(get_db)):
+    """
+    Fetch events with optional filter:
+    - event_id: specific event by event_id
+    - no parameters: all events
+    """
+    try:
+        if event_id:
+            events = db.query(Event).filter(Event.event_id == event_id).all()
+        else:
+            events = db.query(Event).all()
+        return [EventModel.from_orm(event) for event in events]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching events: {str(e)}")
+
+@app.get("/api/v1/event_vendor/")
+async def fetch_event_vendors(event_id: str = None, consumer_id: str = None, db: Session = Depends(get_db)):
+    """
+    Fetch event vendors with optional filters:
+    - event_id: all vendors for a specific event
+    - consumer_id: all events for a specific consumer
+    - no parameters: all event vendor relationships
+    """
+    try:
+        query = db.query(EventVendor)
+        
+        if event_id:
+            query = query.filter(EventVendor.event_id == event_id)
+        elif consumer_id:
+            query = query.filter(EventVendor.consumer_id == consumer_id)
+        
+        event_vendors = query.all()
+        return [EventVendorModel.from_orm(event_vendor) for event_vendor in event_vendors]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching event vendors: {str(e)}")
+
 # for verifying JWT token
 @app.get("/api/v1/verify/{token}")
 async def verify_token_endpoint(token: str):
@@ -330,6 +370,76 @@ async def create_producer_consumer_match(producer_id: str, consumer_id: str, db:
             status_code=500, 
             detail=f"Error creating producer-consumer match: {str(e)}"
         )
+
+# for creating events
+@app.post("/api/v1/events/")
+async def create_event(event: EventModel, db: Session = Depends(get_db)):
+    """
+    Create a new event
+    """
+    try:
+        # Check if event with same event_id already exists
+        existing = db.query(Event).filter_by(event_id=event.event_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Event with this event_id already exists.")
+
+        # Generate a unique event_id if not provided
+        if not event.event_id:
+            event.event_id = str(uuid4())[:8].upper()
+
+        db_event = Event(**event.dict())
+        db.add(db_event)
+        db.commit()
+        db.refresh(db_event)
+        return EventModel.from_orm(db_event)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating event: {str(e)}")
+
+# for creating event vendor relationships
+@app.post("/api/v1/event_vendor/")
+async def create_event_vendor(event_id: str, consumer_id: str, db: Session = Depends(get_db)):
+    """
+    Create a new event vendor relationship
+    """
+    try:
+        # Check if the relationship already exists
+        existing = db.query(EventVendor).filter(
+            EventVendor.event_id == event_id,
+            EventVendor.consumer_id == consumer_id
+        ).first()
+        
+        if existing:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Event vendor relationship between event '{event_id}' and consumer '{consumer_id}' already exists"
+            )
+        
+        # Create new event vendor relationship
+        new_event_vendor = EventVendor(
+            event_id=event_id,
+            consumer_id=consumer_id
+        )
+        
+        db.add(new_event_vendor)
+        db.commit()
+        db.refresh(new_event_vendor)
+        
+        return {
+            "message": "Event vendor relationship created successfully",
+            "id": str(new_event_vendor.id),
+            "event_id": event_id,
+            "consumer_id": consumer_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating event vendor relationship: {str(e)}")
     
 
 #-------------------------------------------------#
@@ -472,4 +582,76 @@ async def delete_producer_consumer_match(producer_id: str, consumer_id: str, db:
         raise HTTPException(
             status_code=500, 
             detail=f"Error deleting producer-consumer match: {str(e)}"
+        )
+
+@app.delete("/api/v1/events/{event_id}")
+async def delete_event(event_id: str, db: Session = Depends(get_db)):
+    """
+    Delete an event by event_id
+    """
+    try:
+        # Find the event to delete
+        event = db.query(Event).filter(Event.event_id == event_id).first()
+        
+        if not event:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Event with ID '{event_id}' not found"
+            )
+        
+        # Delete the event
+        db.delete(event)
+        db.commit()
+        
+        return {
+            "message": f"Event '{event_id}' deleted successfully",
+            "event_id": event_id,
+            "event_name": event.name
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error deleting event: {str(e)}"
+        )
+
+@app.delete("/api/v1/event_vendor/")
+async def delete_event_vendor(event_id: str, consumer_id: str, db: Session = Depends(get_db)):
+    """
+    Delete an event vendor relationship by event_id and consumer_id
+    """
+    try:
+        # Find the event vendor relationship to delete
+        event_vendor = db.query(EventVendor).filter(
+            EventVendor.event_id == event_id,
+            EventVendor.consumer_id == consumer_id
+        ).first()
+        
+        if not event_vendor:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No event vendor relationship found between event '{event_id}' and consumer '{consumer_id}'"
+            )
+        
+        # Delete the relationship
+        db.delete(event_vendor)
+        db.commit()
+        
+        return {
+            "message": "Event vendor relationship deleted successfully",
+            "event_id": event_id,
+            "consumer_id": consumer_id,
+            "deleted_id": str(event_vendor.id)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error deleting event vendor relationship: {str(e)}"
         )

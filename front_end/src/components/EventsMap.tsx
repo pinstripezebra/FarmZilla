@@ -1,5 +1,6 @@
-import React from 'react';
-import { Box, VStack, Card, CardBody, Heading, Text, Grid, GridItem } from '@chakra-ui/react';
+import React, { useState, useEffect } from 'react';
+import { Box, VStack, Card, CardBody, Heading, Text, Grid, GridItem, Spinner, Alert, AlertIcon } from '@chakra-ui/react';
+import { eventService, type Event } from '../services/eventService';
 
 interface EventsMapProps {
   height?: string;
@@ -10,39 +11,94 @@ const EventsMap: React.FC<EventsMapProps> = ({
   height = "400px", 
   width = "100%" 
 }) => {
-  // Sample events data
-  const sampleEvents = [
-    {
-      id: 1,
-      name: "Farmers Market Downtown",
-      date: "2025-11-01",
-      time: "8:00 AM - 2:00 PM",
-      location: "Downtown Seattle",
-      description: "Weekly farmers market featuring local produce",
-      coordinates: "47.6062, -122.3321"
-    },
-    {
-      id: 2,
-      name: "Agricultural Fair",
-      date: "2025-11-15",
-      time: "9:00 AM - 6:00 PM",
-      location: "Seattle Center",
-      description: "Annual agricultural fair and exhibition",
-      coordinates: "47.6205, -122.3493"
-    },
-    {
-      id: 3,
-      name: "Farm to Table Event",
-      date: "2025-12-01",
-      time: "5:00 PM - 9:00 PM",
-      location: "Capitol Hill",
-      description: "Farm to table dining experience",
-      coordinates: "47.5952, -122.3316"
-    }
-  ];
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        const eventsData = await eventService.getAllEvents();
+        setEvents(eventsData);
+        setError("");
+      } catch (err: any) {
+        console.error('Error fetching events:', err);
+        setError('Failed to load events. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
 
   // OpenStreetMap iframe URL for Seattle area
   const mapUrl = "https://www.openstreetmap.org/export/embed.html?bbox=-122.4194%2C47.5444%2C-122.2419%2C47.6742&layer=mapnik&marker=47.6062%2C-122.3321";
+
+  const renderEventsContent = () => {
+    if (loading) {
+      return (
+        <VStack spacing={4} align="center" justify="center" height="100%">
+          <Spinner size="lg" color="teal.500" />
+          <Text>Loading events...</Text>
+        </VStack>
+      );
+    }
+
+    if (error) {
+      return (
+        <Alert status="error" borderRadius="md">
+          <AlertIcon />
+          {error}
+        </Alert>
+      );
+    }
+
+    if (events.length === 0) {
+      return (
+        <Alert status="info" borderRadius="md">
+          <AlertIcon />
+          No events found
+        </Alert>
+      );
+    }
+
+    return (
+      <VStack spacing={4} align="stretch" height="100%" overflowY="auto">
+        <Heading size="md" color="teal.600" textAlign="center">
+          Upcoming Events
+        </Heading>
+        
+        {events.map((event) => (
+          <Card key={event.event_id} variant="outline" size="sm">
+            <CardBody>
+              <VStack align="start" spacing={2}>
+                <Heading size="sm" color="teal.600">
+                  {event.name}
+                </Heading>
+                <Text fontSize="sm" fontWeight="bold" color="gray.700">
+                  📅 {event.date}
+                </Text>
+                <Text fontSize="sm" color="gray.600">
+                  🕐 {event.time}
+                </Text>
+                <Text fontSize="sm" color="gray.600">
+                  📍 {event.location}
+                </Text>
+                <Text fontSize="xs" color="gray.500">
+                  Coordinates: {event.coordinates}
+                </Text>
+                <Text fontSize="sm">
+                  {event.description}
+                </Text>
+              </VStack>
+            </CardBody>
+          </Card>
+        ))}
+      </VStack>
+    );
+  };
 
   return (
     <Box height={height} width={width} borderRadius="md" overflow="hidden" boxShadow="md">
@@ -80,38 +136,7 @@ const EventsMap: React.FC<EventsMapProps> = ({
 
         {/* Events List Section */}
         <GridItem bg="gray.50" p={4}>
-          <VStack spacing={4} align="stretch" height="100%" overflowY="auto">
-            <Heading size="md" color="teal.600" textAlign="center">
-              Upcoming Events
-            </Heading>
-            
-            {sampleEvents.map((event) => (
-              <Card key={event.id} variant="outline" size="sm">
-                <CardBody>
-                  <VStack align="start" spacing={2}>
-                    <Heading size="sm" color="teal.600">
-                      {event.name}
-                    </Heading>
-                    <Text fontSize="sm" fontWeight="bold" color="gray.700">
-                      📅 {event.date}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      🕐 {event.time}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      📍 {event.location}
-                    </Text>
-                    <Text fontSize="xs" color="gray.500">
-                      Coordinates: {event.coordinates}
-                    </Text>
-                    <Text fontSize="sm">
-                      {event.description}
-                    </Text>
-                  </VStack>
-                </CardBody>
-              </Card>
-            ))}
-          </VStack>
+          {renderEventsContent()}
         </GridItem>
       </Grid>
     </Box>

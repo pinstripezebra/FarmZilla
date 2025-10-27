@@ -75,3 +75,41 @@ class ProducerConsumerMatchModel(BaseModel):
     class Config:
         orm_mode = True
         from_attributes = True
+
+class Event(Base):
+    __tablename__ = "events"
+    id = Column(pg.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
+    event_id = Column(String, unique=True, nullable=False)
+    name = Column(String, nullable=False)
+    date = Column(String, nullable=False)
+    time = Column(String, nullable=False)
+    location = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    coordinates = Column(String, nullable=False)
+
+class EventModel(BaseModel):
+    id: Optional[UUID] = None
+    event_id: str
+    name: str
+    date: str
+    time: str
+    location: str
+    description: str
+    coordinates: str
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+class EventVendor(Base):
+    __tablename__ = "event_vendor"
+    id = Column(pg.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
+    event_id = Column(String, nullable=False)
+    consumer_id = Column(String, nullable=False)
+
+class EventVendorModel(BaseModel):
+    id: Optional[UUID] = None
+    event_id: str
+    consumer_id: str
+    class Config:
+        orm_mode = True
+        from_attributes = True
