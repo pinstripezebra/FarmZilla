@@ -237,9 +237,7 @@ for index, row in products.iterrows():
     else:
         print(f"Warning: No image found for product: {product_name}")
 
-# Add user_id column to products dataframe with empty values for initial data  
-if 'user_id' not in products.columns:
-    products['user_id'] = None  # Will be None for existing products
+# The user_id column is now properly included from the CSV file
 
 
 # Populates the tables with data from the dataframes
