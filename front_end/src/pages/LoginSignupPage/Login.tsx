@@ -17,6 +17,7 @@ import {
   HStack,
   Text,
   Image,
+  useToast,
 } from "@chakra-ui/react";
 import { FaUserAlt, FaLock } from "react-icons/fa";
 import api from "./../../services/apli-client";
@@ -51,12 +52,20 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { setUser } = useUser();
+  const toast = useToast(); // Initialize toast for error messages
   const handleShowClick = () => setShowPassword(!showPassword);
 
   // validation form to ensure username and password are not blank
   const validateForm = () => {
     if (!localUsername.trim() || !password.trim()) {
-      setError("Username and password cannot be blank.");
+      toast({
+        title: "Validation Error",
+        description: "Username and password cannot be blank.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom",
+      });
       return false;
     }
     setError(null);
@@ -116,14 +125,23 @@ function Login() {
     } catch (error: any) {
       setLoading(false);
       if (error.response && error.response.data) {
-        setError(
-          error.response.data.detail ||
-            "Authentication Failed. Please try again."
-        );
+        toast({
+          title: "Authentication Failed",
+          description: error.response.data.detail || "Invalid username or password. Please try again.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "bottom",
+        });
       } else {
-        setError(
-          "An error occurred while trying to log in. Please try again later."
-        );
+        toast({
+          title: "Login Error",
+          description: "An error occurred while trying to log in. Please try again later.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "bottom",
+        });
       }
     }
   };
