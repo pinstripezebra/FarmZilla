@@ -1,18 +1,18 @@
 product_id,product_name,description,user_id
-E5F6G7H8,Bell Pepper,Colorful bell peppers with a crisp texture and mild flavor.,PROD001
-M3N4O5P6,Carrot,Crunchy orange carrots great for snacking or cooking.,PROD001
-U1V2W3X4,Cilantro,Fresh cilantro herbs perfect for seasoning dishes.,PROD001
-C9D0E1F2,Corn,Fresh sweet corn picked at peak ripeness for grilling or boiling.,PROD002
-K7L8M9N0,Cucumber,Crisp cucumbers perfect for salads and sandwiches.,PROD002
-S5T6U7V8,Eggs,Fresh farm eggs with rich golden yolks.,PROD002
-A3B4C5D6,Fennel,Fresh fennel with a mild anise flavor for cooking.,PROD003
-I1J2K3L4,Granny Smith Apple,Crisp green apples ideal for snacking or baking pies.,PROD003
-Q9R0S1T2,Grape Tomato,Small sweet grape tomatoes perfect for snacking.,PROD003
-Y7Z8A9B0,Jalapeno,Spicy jalapeno peppers to add heat to your dishes.,PROD003
-G5H6I7J8,Kale,Nutritious leafy kale perfect for salads and smoothies.,PROD004
-O3P4Q5R6,Mango,Sweet tropical mangoes with rich flavor.,PROD004
-S7T8U9V0,Potato,Versatile potatoes for baking mashing or roasting.,PROD004
-A5B6C7D8,Purple Onion,Flavorful purple onions to enhance any savory dish.,PROD005
-I3J4K5L6,Radish,Spicy radishes add crunch to salads and tacos.,PROD005
-Q1R2S3T4,Shallot,Mild shallots perfect for gourmet cooking.,PROD005
-Y9Z0A1B2,Tomato,Juicy red tomatoes perfect for salads and sandwiches.,PROD005
+E5F6G7H8,Bell Pepper,Colorful bell peppers with a crisp texture and mild flavor.,550e8400-e29b-41d4-a716-446655440001
+M3N4O5P6,Carrot,Crunchy orange carrots great for snacking or cooking.,550e8400-e29b-41d4-a716-446655440001
+U1V2W3X4,Cilantro,Fresh cilantro herbs perfect for seasoning dishes.,550e8400-e29b-41d4-a716-446655440001
+C9D0E1F2,Corn,Fresh sweet corn picked at peak ripeness for grilling or boiling.,550e8400-e29b-41d4-a716-446655440002
+K7L8M9N0,Cucumber,Crisp cucumbers perfect for salads and sandwiches.,550e8400-e29b-41d4-a716-446655440002
+S5T6U7V8,Eggs,Fresh farm eggs with rich golden yolks.,550e8400-e29b-41d4-a716-446655440002
+A3B4C5D6,Fennel,Fresh fennel with a mild anise flavor for cooking.,550e8400-e29b-41d4-a716-446655440003
+I1J2K3L4,Granny Smith Apple,Crisp green apples ideal for snacking or baking pies.,550e8400-e29b-41d4-a716-446655440003
+Q9R0S1T2,Grape Tomato,Small sweet grape tomatoes perfect for snacking.,550e8400-e29b-41d4-a716-446655440003
+Y7Z8A9B0,Jalapeno,Spicy jalapeno peppers to add heat to your dishes.,550e8400-e29b-41d4-a716-446655440003
+G5H6I7J8,Kale,Nutritious leafy kale perfect for salads and smoothies.,550e8400-e29b-41d4-a716-446655440004
+O3P4Q5R6,Mango,Sweet tropical mangoes with rich flavor.,550e8400-e29b-41d4-a716-446655440004
+S7T8U9V0,Potato,Versatile potatoes for baking mashing or roasting.,550e8400-e29b-41d4-a716-446655440004
+A5B6C7D8,Purple Onion,Flavorful purple onions to enhance any savory dish.,550e8400-e29b-41d4-a716-446655440005
+I3J4K5L6,Radish,Spicy radishes add crunch to salads and tacos.,550e8400-e29b-41d4-a716-446655440005
+Q1R2S3T4,Shallot,Mild shallots perfect for gourmet cooking.,550e8400-e29b-41d4-a716-446655440005
+Y9Z0A1B2,Tomato,Juicy red tomatoes perfect for salads and sandwiches.,550e8400-e29b-41d4-a716-446655440005

@@ -8,6 +8,7 @@ import pandas as pd
 import uuid
 import boto3
 from botocore.exceptions import ClientError
+from passlib.context import CryptContext
 
 # Load environment variables from .env file (override=True reloads changed values)
 load_dotenv(override=True)
@@ -30,6 +31,9 @@ engine = DatabaseHandler(URL_database)
 
 # Initialize S3 client
 s3 = boto3.client('s3')
+
+# Initialize password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def upload_images_to_s3():
     """Upload product images to S3 and return a mapping of product names to S3 URLs"""
@@ -238,6 +242,14 @@ for index, row in products.iterrows():
         print(f"Warning: No image found for product: {product_name}")
 
 # The user_id column is now properly included from the CSV file
+
+# Hash user passwords before storing them in the database
+print("Hashing user passwords...")
+for index, row in users.iterrows():
+    plain_password = row['password']
+    hashed_password = pwd_context.hash(plain_password)
+    users.at[index, 'password'] = hashed_password
+    print(f"Hashed password for user: {row['username']}")
 
 
 # Populates the tables with data from the dataframes
