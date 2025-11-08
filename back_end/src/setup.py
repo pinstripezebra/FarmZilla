@@ -172,7 +172,8 @@ products_table_creation_query = """CREATE TABLE IF NOT EXISTS products (
 producer_consumer_matching_table_creation_query = """CREATE TABLE IF NOT EXISTS producer_consumer_matches (
     id UUID PRIMARY KEY,
     producer_id VARCHAR(255) NOT NULL,
-    consumer_id VARCHAR(255) NOT NULL
+    consumer_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
     """
 

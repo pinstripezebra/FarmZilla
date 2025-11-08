@@ -373,7 +373,8 @@ async def create_producer_consumer_match(producer_id: str, consumer_id: str, db:
             "message": f"Producer-consumer match created successfully",
             "match_id": str(new_match.id),
             "producer_id": producer_id,
-            "consumer_id": consumer_id
+            "consumer_id": consumer_id,
+            "created_at": new_match.created_at.isoformat()
         }
         
     except HTTPException:

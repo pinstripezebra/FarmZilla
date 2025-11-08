@@ -40,6 +40,8 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string>("");
+  const [followedProducers, setFollowedProducers] = useState<Set<string>>(new Set());
+  const [followingInProgress, setFollowingInProgress] = useState<Set<string>>(new Set());
   const toast = useToast();
 
   // Function to fetch username by user_id
@@ -88,8 +90,23 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
     }
   };
 
+  // Function to fetch current user's followed producers
+  const fetchFollowedProducers = async () => {
+    const currentUserId = localStorage.getItem("userId") || localStorage.getItem("user_id");
+    if (!currentUserId) return;
+
+    try {
+      const response = await apiClient.get(`/v1/producer_consumer_matches/?consumer_id=${currentUserId}`);
+      const followedProducerIds = new Set<string>(response.data.map((match: any) => String(match.producer_id)));
+      setFollowedProducers(followedProducerIds);
+    } catch (error) {
+      console.error("Failed to fetch followed producers:", error);
+    }
+  };
+
   useEffect(() => {
     fetchAllProducts();
+    fetchFollowedProducers();
   }, []);
 
   const handleAddToCart = (product: Product) => {
@@ -102,6 +119,68 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
       duration: 3000,
       isClosable: true,
     });
+  };
+
+  const handleFollowProducer = async (product: Product) => {
+    if (!product.user_id) {
+      toast({
+        title: "Error",
+        description: "Unable to follow producer: Producer ID not available",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Get current consumer ID from localStorage (assuming it's stored there)
+    const currentUserId = localStorage.getItem("userId") || localStorage.getItem("user_id");
+    if (!currentUserId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to follow producers",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Add producer to following in progress set
+    setFollowingInProgress(prev => new Set(prev).add(product.user_id!));
+
+    try {
+      const response = await apiClient.post(`/v1/producer_consumer_matches/?producer_id=${product.user_id}&consumer_id=${currentUserId}`);
+      
+      if (response.status === 200) {
+        // Add to followed producers set
+        setFollowedProducers(prev => new Set(prev).add(product.user_id!));
+        
+        toast({
+          title: "Success",
+          description: `You are now following ${product.username || "this producer"}`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || err.message || "Failed to follow producer";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      // Remove producer from following in progress set
+      setFollowingInProgress(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(product.user_id!);
+        return newSet;
+      });
+    }
   };
 
   const handleImageError = (product: Product) => {
@@ -161,7 +240,7 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
             <Th>Product Name</Th>
             <Th>Description</Th>
             <Th>Producer</Th>
-            <Th>Action</Th>
+            <Th>Actions</Th>
           </Tr>
         </Thead>
         <Tbody>
@@ -231,14 +310,26 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
                 </Text>
               </Td>
               <Td>
-                <Button
-                  size="sm"
-                  colorScheme="teal"
-                  variant="solid"
-                  onClick={() => handleAddToCart(product)}
-                >
-                  Add to Cart
-                </Button>
+                <Box display="flex" gap={2} flexWrap="wrap">
+                  <Button
+                    size="sm"
+                    colorScheme="teal"
+                    variant="solid"
+                    onClick={() => handleAddToCart(product)}
+                  >
+                    Add to Cart
+                  </Button>
+                  <Button
+                    size="sm"
+                    colorScheme={followedProducers.has(product.user_id || '') ? "green" : "blue"}
+                    variant={followedProducers.has(product.user_id || '') ? "solid" : "outline"}
+                    onClick={() => handleFollowProducer(product)}
+                    isLoading={followingInProgress.has(product.user_id || '')}
+                    isDisabled={followedProducers.has(product.user_id || '') || !product.user_id}
+                  >
+                    {followedProducers.has(product.user_id || '') ? "Following" : "Follow"}
+                  </Button>
+                </Box>
               </Td>
             </Tr>
           ))}

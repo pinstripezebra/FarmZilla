@@ -2,13 +2,14 @@ from pydantic import BaseModel
 from uuid import UUID,uuid4
 from typing import Optional
 from enum import Enum
-from sqlalchemy import Column, String, Float, Integer
+from sqlalchemy import Column, String, Float, Integer, DateTime
 import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy.dialects.postgresql import UUID as SA_UUID
 from sqlalchemy.ext.declarative import declarative_base
 import uuid
 from uuid import UUID
 from sqlalchemy import Enum as SAEnum
+from datetime import datetime
 
 # loading sql model
 from sqlmodel import Field, Session, SQLModel, create_engine, select
@@ -67,11 +68,13 @@ class ProducerConsumerMatch(Base):
     id = Column(pg.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
     producer_id = Column(String, nullable=False)
     consumer_id = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 class ProducerConsumerMatchModel(BaseModel):
     id: Optional[UUID] = None
     producer_id: str
     consumer_id: str
+    created_at: Optional[datetime] = None
     class Config:
         orm_mode = True
         from_attributes = True
