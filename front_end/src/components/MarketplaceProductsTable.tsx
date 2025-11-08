@@ -40,6 +40,9 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const itemsPerPage = 10;
   const toast = useToast();
 
   // Function to fetch username by user_id
@@ -72,7 +75,9 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
         })
       );
       
-      setProducts(productsWithUsernames);
+      setAllProducts(productsWithUsernames);
+      // Set initial page products (first 10)
+      setProducts(productsWithUsernames.slice(0, itemsPerPage));
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || "Failed to fetch marketplace products";
       setFetchError(errorMessage);
@@ -91,6 +96,32 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
   useEffect(() => {
     fetchAllProducts();
   }, []);
+
+  const handleNextPage = () => {
+    const nextPage = currentPage + 1;
+    const startIndex = nextPage * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    if (startIndex < allProducts.length) {
+      setCurrentPage(nextPage);
+      setProducts(allProducts.slice(startIndex, endIndex));
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      const prevPage = currentPage - 1;
+      const startIndex = prevPage * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      
+      setCurrentPage(prevPage);
+      setProducts(allProducts.slice(startIndex, endIndex));
+    }
+  };
+
+  const totalPages = Math.ceil(allProducts.length / itemsPerPage);
+  const hasNextPage = currentPage < totalPages - 1;
+  const hasPrevPage = currentPage > 0;
 
   const handleAddToCart = (product: Product) => {
     // Placeholder for add to cart functionality
@@ -153,98 +184,135 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
   }
 
   return (
-    <TableContainer>
-      <Table variant="simple" size="md">
-        <Thead>
-          <Tr>
-            <Th>Image</Th>
-            <Th>Product Name</Th>
-            <Th>Description</Th>
-            <Th>Producer</Th>
-            <Th>Action</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {products.map((product) => (
-            <Tr key={product.id}>
-              <Td>
-                <Box width="80px" height="80px">
-                  {product.image_url ? (
-                    <Image
-                      src={product.image_url}
-                      alt={product.product_name}
-                      width="80px"
-                      height="80px"
-                      objectFit="cover"
-                      borderRadius="md"
-                      onError={() => handleImageError(product)}
-                      onLoad={() => handleImageLoad(product)}
-                      fallback={
-                        <Box
-                          width="80px"
-                          height="80px"
-                          bg="gray.200"
-                          display="flex"
-                          alignItems="center"
-                          justifyContent="center"
-                          borderRadius="md"
-                        >
-                          <Text fontSize="xs" color="gray.500">
-                            Loading...
-                          </Text>
-                        </Box>
-                      }
-                    />
-                  ) : (
-                    <Box
-                      width="80px"
-                      height="80px"
-                      bg="gray.200"
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      borderRadius="md"
-                    >
-                      <Text fontSize="xs" color="gray.500">
-                        No Image
-                      </Text>
-                    </Box>
-                  )}
-                </Box>
-              </Td>
-              <Td>
-                <Text fontWeight="medium">{product.product_name}</Text>
-              </Td>
-              <Td>
-                <Text 
-                  noOfLines={3} 
-                  maxWidth="300px"
-                  fontSize="sm"
-                  color="gray.600"
-                >
-                  {product.description}
-                </Text>
-              </Td>
-              <Td>
-                <Text fontSize="sm" color="teal.600" fontWeight="medium">
-                  {product.username || "Unknown Producer"}
-                </Text>
-              </Td>
-              <Td>
-                <Button
-                  size="sm"
-                  colorScheme="teal"
-                  variant="solid"
-                  onClick={() => handleAddToCart(product)}
-                >
-                  Add to Cart
-                </Button>
-              </Td>
+    <Box>
+      <TableContainer>
+        <Table variant="simple" size="md">
+          <Thead>
+            <Tr>
+              <Th>Image</Th>
+              <Th>Product Name</Th>
+              <Th>Description</Th>
+              <Th>Producer</Th>
+              <Th>Action</Th>
             </Tr>
-          ))}
-        </Tbody>
-      </Table>
-    </TableContainer>
+          </Thead>
+          <Tbody>
+            {products.map((product) => (
+              <Tr key={product.id}>
+                <Td>
+                  <Box width="80px" height="80px">
+                    {product.image_url ? (
+                      <Image
+                        src={product.image_url}
+                        alt={product.product_name}
+                        width="80px"
+                        height="80px"
+                        objectFit="cover"
+                        borderRadius="md"
+                        onError={() => handleImageError(product)}
+                        onLoad={() => handleImageLoad(product)}
+                        fallback={
+                          <Box
+                            width="80px"
+                            height="80px"
+                            bg="gray.200"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                            borderRadius="md"
+                          >
+                            <Text fontSize="xs" color="gray.500">
+                              Loading...
+                            </Text>
+                          </Box>
+                        }
+                      />
+                    ) : (
+                      <Box
+                        width="80px"
+                        height="80px"
+                        bg="gray.200"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        borderRadius="md"
+                      >
+                        <Text fontSize="xs" color="gray.500">
+                          No Image
+                        </Text>
+                      </Box>
+                    )}
+                  </Box>
+                </Td>
+                <Td>
+                  <Text fontWeight="medium">{product.product_name}</Text>
+                </Td>
+                <Td>
+                  <Text 
+                    noOfLines={3} 
+                    maxWidth="300px"
+                    fontSize="sm"
+                    color="gray.600"
+                  >
+                    {product.description}
+                  </Text>
+                </Td>
+                <Td>
+                  <Text fontSize="sm" color="teal.600" fontWeight="medium">
+                    {product.username || "Unknown Producer"}
+                  </Text>
+                </Td>
+                <Td>
+                  <Button
+                    size="sm"
+                    colorScheme="teal"
+                    variant="solid"
+                    onClick={() => handleAddToCart(product)}
+                  >
+                    Add to Cart
+                  </Button>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </TableContainer>
+      
+      {/* Pagination Controls */}
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems="center" 
+        mt={4} 
+        px={4}
+      >
+        <Text fontSize="sm" color="gray.600">
+          Showing {currentPage * itemsPerPage + 1} - {Math.min((currentPage + 1) * itemsPerPage, allProducts.length)} of {allProducts.length} products
+        </Text>
+        <Box display="flex" gap={2}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handlePrevPage}
+            isDisabled={!hasPrevPage}
+          >
+            Previous
+          </Button>
+          <Text fontSize="sm" color="gray.600" alignSelf="center" px={3}>
+            Page {currentPage + 1} of {totalPages}
+          </Text>
+          <Button
+            size="sm"
+            colorScheme="teal"
+            variant="outline"
+            onClick={handleNextPage}
+            isDisabled={!hasNextPage}
+          >
+            Next Page
+          </Button>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 
