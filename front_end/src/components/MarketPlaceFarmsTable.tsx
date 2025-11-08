@@ -37,6 +37,8 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
   const [producers, setProducers] = useState<Producer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string>("");
+  const [followedProducers, setFollowedProducers] = useState<Set<string>>(new Set());
+  const [followingInProgress, setFollowingInProgress] = useState<Set<string>>(new Set());
   const toast = useToast();
 
   // Function to fetch product count for a specific producer
@@ -85,8 +87,73 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
     }
   };
 
+  // Function to fetch current user's followed producers
+  const fetchFollowedProducers = async () => {
+    const currentUserId = localStorage.getItem("userId") || localStorage.getItem("user_id");
+    if (!currentUserId) return;
+
+    try {
+      const response = await apiClient.get(`/v1/producer_consumer_matches/?consumer_id=${currentUserId}`);
+      const followedProducerIds = new Set<string>(response.data.map((match: any) => String(match.producer_id)));
+      setFollowedProducers(followedProducerIds);
+    } catch (error) {
+      console.error("Failed to fetch followed producers:", error);
+    }
+  };
+
+  // Function to handle following a producer
+  const handleFollowProducer = async (producer: Producer) => {
+    const currentUserId = localStorage.getItem("userId") || localStorage.getItem("user_id");
+    
+    if (!currentUserId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to follow producers.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Add to in-progress set to show loading
+    setFollowingInProgress(prev => new Set(prev).add(producer.id));
+
+    try {
+      await apiClient.post(`/v1/producer_consumer_matches/?producer_id=${producer.id}&consumer_id=${currentUserId}`);
+      
+      // Update followed producers set
+      setFollowedProducers(prev => new Set(prev).add(producer.id));
+      
+      toast({
+        title: "Successfully Followed!",
+        description: `You are now following ${producer.username}`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || err.message || "Failed to follow producer";
+      toast({
+        title: "Follow Failed",
+        description: errorMessage,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      // Remove from in-progress set
+      setFollowingInProgress(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(producer.id);
+        return newSet;
+      });
+    }
+  };
+
   useEffect(() => {
     fetchAllProducers();
+    fetchFollowedProducers();
   }, []);
 
   const handleViewProducts = (producer: Producer) => {
@@ -95,18 +162,6 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
     toast({
       title: "View Products",
       description: `Viewing products from ${producer.username}`,
-      status: "info",
-      duration: 3000,
-      isClosable: true,
-    });
-  };
-
-  const handleContactProducer = (producer: Producer) => {
-    // Placeholder for contacting producer
-    console.log("Contact producer:", producer.username);
-    toast({
-      title: "Contact Producer",
-      description: `Contacting ${producer.username} at ${producer.email}`,
       status: "info",
       duration: 3000,
       isClosable: true,
@@ -189,7 +244,7 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
                 </Badge>
               </Td>
               <Td>
-                <Box display="flex" gap={2}>
+                <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Button
                     size="sm"
                     colorScheme="teal"
@@ -201,11 +256,13 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
                   </Button>
                   <Button
                     size="sm"
-                    colorScheme="blue"
-                    variant="outline"
-                    onClick={() => handleContactProducer(producer)}
+                    colorScheme={followedProducers.has(producer.id) ? "green" : "orange"}
+                    variant={followedProducers.has(producer.id) ? "solid" : "outline"}
+                    onClick={() => handleFollowProducer(producer)}
+                    isLoading={followingInProgress.has(producer.id)}
+                    isDisabled={followedProducers.has(producer.id)}
                   >
-                    Contact
+                    {followedProducers.has(producer.id) ? "Following" : "Follow"}
                   </Button>
                 </Box>
               </Td>

@@ -76,7 +76,7 @@ const ConsumerHome: React.FC = () => {
       
       <Flex flex="1" direction="row">
         {/* Sidebar */}
-        <ConsumerSideBar onActionTriggered={handleSidebarAction} />
+        <ConsumerSideBar onActionTriggered={handleSidebarAction} currentView={currentView} />
         
         {/* Main Content */}
         <Flex flex="1" direction="column" p={6}>
