@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import ConsumerSideBar from "./ConsumerAssets/ConsumerSideBar";
 import MarketplaceProductsTable from "../../components/MarketplaceProductsTable";
 import MarketPlaceFarmsTable from "../../components/MarketPlaceFarmsTable";
+import ConsumerFavoritesPage from "./ConsumerAssets/ConsumerFavoritesPage";
 
 const ConsumerHome: React.FC = () => {
   const navigate = useNavigate();
@@ -36,13 +37,7 @@ const ConsumerHome: React.FC = () => {
           </Box>
         );
       case "favorites":
-        return (
-          <Box display="flex" alignItems="center" justifyContent="center" flex="1">
-            <Text fontWeight="bold" fontSize="2xl" color="gray.500">
-              Favorites - Coming Soon
-            </Text>
-          </Box>
-        );
+        return <ConsumerFavoritesPage />;
       case "category-vegetables":
       case "category-fruits":
       case "category-grains":

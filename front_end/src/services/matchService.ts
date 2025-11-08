@@ -4,6 +4,7 @@ export interface ProducerConsumerMatch {
   id: string;
   producer_id: string;
   consumer_id: string;
+  created_at?: string;
 }
 
 export const matchService = {
