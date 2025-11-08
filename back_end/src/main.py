@@ -180,6 +180,20 @@ async def get_all_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
     return [UserModel.from_orm(user) for user in users]
 
+@app.get("/api/v1/user/{user_id}/username")
+async def get_username_by_id(user_id: str, db: Session = Depends(get_db)):
+    """Get username by user_id"""
+    try:
+        user_uuid = UUID(user_id)
+        user = db.query(User).filter(User.id == user_uuid).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {"username": user.username}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching username: {str(e)}")
+
 @app.get("/api/v1/events/")
 async def fetch_events(event_id: str = None, db: Session = Depends(get_db)):
     """

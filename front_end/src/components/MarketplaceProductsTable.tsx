@@ -19,6 +19,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { productService } from "../services/productService";
+import apiClient from "../services/apli-client";
 
 interface Product {
   id: string;
@@ -27,6 +28,7 @@ interface Product {
   description: string;
   image_url?: string;
   user_id?: string;
+  username?: string;
 }
 
 interface MarketplaceProductsTableProps {
@@ -40,6 +42,17 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
   const [fetchError, setFetchError] = useState<string>("");
   const toast = useToast();
 
+  // Function to fetch username by user_id
+  const fetchUsername = async (userId: string): Promise<string> => {
+    try {
+      const response = await apiClient.get(`/v1/user/${userId}/username`);
+      return response.data.username;
+    } catch (error) {
+      console.error(`Failed to fetch username for user ${userId}:`, error);
+      return "Unknown Producer";
+    }
+  };
+
   const fetchAllProducts = async () => {
     setIsLoading(true);
     setFetchError("");
@@ -47,7 +60,19 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
     try {
       // Fetch all products from all producers
       const response = await productService.getAllProducts();
-      setProducts(response);
+      
+      // Fetch usernames for each product
+      const productsWithUsernames = await Promise.all(
+        response.map(async (product: Product) => {
+          if (product.user_id) {
+            const username = await fetchUsername(product.user_id);
+            return { ...product, username };
+          }
+          return { ...product, username: "Unknown Producer" };
+        })
+      );
+      
+      setProducts(productsWithUsernames);
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || "Failed to fetch marketplace products";
       setFetchError(errorMessage);
@@ -201,8 +226,8 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
                 </Text>
               </Td>
               <Td>
-                <Text fontSize="sm" color="gray.500">
-                  Producer ID: {product.user_id?.slice(0, 8) || "Unknown"}
+                <Text fontSize="sm" color="teal.600" fontWeight="medium">
+                  {product.username || "Unknown Producer"}
                 </Text>
               </Td>
               <Td>
