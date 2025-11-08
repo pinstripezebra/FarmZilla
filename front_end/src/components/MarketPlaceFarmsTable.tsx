@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Table,
   Thead,
@@ -17,7 +17,15 @@ import {
   Button,
   useToast,
   Badge,
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogBody,
+  AlertDialogFooter,
+  useDisclosure,
 } from "@chakra-ui/react";
+import { CheckIcon } from "@chakra-ui/icons";
 import apiClient from "../services/apli-client";
 import { useUser } from "../context/UserContex";
 
@@ -40,6 +48,9 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
   const [fetchError, setFetchError] = useState<string>("");
   const [followedProducers, setFollowedProducers] = useState<Set<string>>(new Set());
   const [followingInProgress, setFollowingInProgress] = useState<Set<string>>(new Set());
+  const [selectedProducer, setSelectedProducer] = useState<Producer | null>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const toast = useToast();
   const { user } = useUser();
 
@@ -103,6 +114,18 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
     }
   };
 
+  // Function to handle follow/unfollow button click
+  const handleFollowButtonClick = (producer: Producer) => {
+    if (followedProducers.has(producer.id)) {
+      // If already following, show unfollow confirmation
+      setSelectedProducer(producer);
+      onOpen();
+    } else {
+      // If not following, follow the producer
+      handleFollowProducer(producer);
+    }
+  };
+
   // Function to handle following a producer
   const handleFollowProducer = async (producer: Producer) => {
     const currentUserId = user?.id || localStorage.getItem("userId");
@@ -150,6 +173,65 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
         newSet.delete(producer.id);
         return newSet;
       });
+    }
+  };
+
+  // Function to handle unfollowing a producer
+  const handleUnfollowProducer = async () => {
+    if (!selectedProducer) return;
+    
+    const currentUserId = user?.id || localStorage.getItem("userId");
+    
+    if (!currentUserId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to unfollow producers.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      onClose();
+      return;
+    }
+
+    // Add to in-progress set to show loading
+    setFollowingInProgress(prev => new Set(prev).add(selectedProducer.id));
+
+    try {
+      await apiClient.delete(`/v1/producer_consumer_matches/?producer_id=${selectedProducer.id}&consumer_id=${currentUserId}`);
+      
+      // Update followed producers set
+      setFollowedProducers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(selectedProducer.id);
+        return newSet;
+      });
+      
+      toast({
+        title: "Successfully Unfollowed!",
+        description: `You have unfollowed ${selectedProducer.username}`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || err.message || "Failed to unfollow producer";
+      toast({
+        title: "Unfollow Failed",
+        description: errorMessage,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      // Remove from in-progress set
+      setFollowingInProgress(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(selectedProducer.id);
+        return newSet;
+      });
+      onClose();
+      setSelectedProducer(null);
     }
   };
 
@@ -211,68 +293,112 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
   }
 
   return (
-    <TableContainer>
-      <Table variant="simple" size="md">
-        <Thead>
-          <Tr>
-            <Th>Producer Name</Th>
-            <Th>Email</Th>
-            <Th>Products Available</Th>
-            <Th>Actions</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {producers.map((producer) => (
-            <Tr key={producer.id}>
-              <Td>
-                <Text fontWeight="medium" color="teal.600">
-                  {producer.username}
-                </Text>
-              </Td>
-              <Td>
-                <Text fontSize="sm" color="gray.600">
-                  {producer.email}
-                </Text>
-              </Td>
-              <Td>
-                <Badge
-                  colorScheme={producer.productCount && producer.productCount > 0 ? "green" : "gray"}
-                  variant="subtle"
-                  fontSize="sm"
-                  px={3}
-                  py={1}
-                >
-                  {producer.productCount || 0} Products
-                </Badge>
-              </Td>
-              <Td>
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Button
-                    size="sm"
-                    colorScheme="teal"
-                    variant="outline"
-                    onClick={() => handleViewProducts(producer)}
-                    isDisabled={!producer.productCount || producer.productCount === 0}
-                  >
-                    View Products
-                  </Button>
-                  <Button
-                    size="sm"
-                    colorScheme={followedProducers.has(producer.id) ? "green" : "orange"}
-                    variant={followedProducers.has(producer.id) ? "solid" : "outline"}
-                    onClick={() => handleFollowProducer(producer)}
-                    isLoading={followingInProgress.has(producer.id)}
-                    isDisabled={followedProducers.has(producer.id)}
-                  >
-                    {followedProducers.has(producer.id) ? "Following" : "Follow"}
-                  </Button>
-                </Box>
-              </Td>
+    <>
+      <TableContainer>
+        <Table variant="simple" size="md">
+          <Thead>
+            <Tr>
+              <Th>Producer Name</Th>
+              <Th>Email</Th>
+              <Th>Products Available</Th>
+              <Th>Actions</Th>
             </Tr>
-          ))}
-        </Tbody>
-      </Table>
-    </TableContainer>
+          </Thead>
+          <Tbody>
+            {producers.map((producer) => (
+              <Tr key={producer.id}>
+                <Td>
+                  <Text fontWeight="medium" color="teal.600">
+                    {producer.username}
+                  </Text>
+                </Td>
+                <Td>
+                  <Text fontSize="sm" color="gray.600">
+                    {producer.email}
+                  </Text>
+                </Td>
+                <Td>
+                  <Badge
+                    colorScheme={producer.productCount && producer.productCount > 0 ? "green" : "gray"}
+                    variant="subtle"
+                    fontSize="sm"
+                    px={3}
+                    py={1}
+                  >
+                    {producer.productCount || 0} Products
+                  </Badge>
+                </Td>
+                <Td>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Button
+                      size="sm"
+                      colorScheme="teal"
+                      variant="outline"
+                      onClick={() => handleViewProducts(producer)}
+                      isDisabled={!producer.productCount || producer.productCount === 0}
+                    >
+                      View Products
+                    </Button>
+                    <Button
+                      size="sm"
+                      colorScheme="green"
+                      variant={followedProducers.has(producer.id) ? "solid" : "outline"}
+                      onClick={() => handleFollowButtonClick(producer)}
+                      isLoading={followingInProgress.has(producer.id)}
+                      leftIcon={followedProducers.has(producer.id) ? <CheckIcon /> : undefined}
+                      _hover={{
+                        bg: followedProducers.has(producer.id) ? "red.500" : "green.500",
+                        color: "white",
+                        borderColor: followedProducers.has(producer.id) ? "red.500" : "green.500"
+                      }}
+                    >
+                      {followedProducers.has(producer.id) ? "Following" : "Follow"}
+                    </Button>
+                  </Box>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </TableContainer>
+
+      {/* Unfollow Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Unfollow Producer
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure you want to unfollow{" "}
+              <Text as="span" fontWeight="bold" color="teal.600">
+                {selectedProducer?.username}
+              </Text>
+              ? You will no longer receive updates about their products.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                colorScheme="red" 
+                onClick={handleUnfollowProducer} 
+                ml={3}
+                isLoading={selectedProducer ? followingInProgress.has(selectedProducer.id) : false}
+              >
+                Unfollow
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </>
   );
 };
 
