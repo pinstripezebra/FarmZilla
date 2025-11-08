@@ -3,6 +3,7 @@ import { Box, Flex, Text, Heading, Button } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import ConsumerSideBar from "./ConsumerAssets/ConsumerSideBar";
 import MarketplaceProductsTable from "../../components/MarketplaceProductsTable";
+import MarketPlaceFarmsTable from "../../components/MarketPlaceFarmsTable";
 
 const ConsumerHome: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +25,8 @@ const ConsumerHome: React.FC = () => {
     switch (currentView) {
       case "browse-products":
         return <MarketplaceProductsTable />;
+      case "browse-farmers":
+        return <MarketPlaceFarmsTable />;
       case "my-orders":
         return (
           <Box display="flex" alignItems="center" justifyContent="center" flex="1">

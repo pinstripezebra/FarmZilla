@@ -12,6 +12,11 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered }) 
     onActionTriggered?.("browse-products");
   };
 
+  const handleBrowseFarmers = () => {
+    console.log("Browse Farmers clicked");
+    onActionTriggered?.("browse-farmers");
+  };
+
   const handleViewOrders = () => {
     console.log("View Orders clicked");
     onActionTriggered?.("my-orders");
@@ -32,7 +37,10 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered }) 
       <VStack align="stretch" spacing={4}>
         <Text fontWeight="bold" fontSize="md" color="teal.700">Browse</Text>
         <Button colorScheme="teal" variant="outline" onClick={handleBrowseProducts}>
-          All Products
+          Products
+        </Button>
+        <Button colorScheme="teal" variant="outline" onClick={handleBrowseFarmers}>
+          Farmers
         </Button>
         
         <Divider />
