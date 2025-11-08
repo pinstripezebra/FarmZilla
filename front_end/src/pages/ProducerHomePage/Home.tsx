@@ -1,12 +1,30 @@
 
 import React, { useState, useEffect } from "react";
-import { Heading, Button, Flex, Text, Box, useToast, useDisclosure } from "@chakra-ui/react";
+import { 
+  Heading, 
+  Button, 
+  Flex, 
+  Text, 
+  Box, 
+  useToast, 
+  useDisclosure,
+  Card,
+  CardHeader,
+  CardBody,
+  Avatar,
+  Badge,
+  VStack,
+  HStack,
+  Icon
+} from "@chakra-ui/react";
+import { EmailIcon, PhoneIcon, StarIcon } from "@chakra-ui/icons";
 import ProducerSupplyBar from "./HomePageAssets/ProducerSupplyBar";
 import ProductEntryForm from "./HomePageAssets/ProductEntryForm";
 import UserProductsTable from "../../components/UserProductsTable";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../context/UserContex";
 import { productService, type Product } from "../../services/productService";
+import apiClient from "../../services/apli-client";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +36,8 @@ const Home: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  const [averageRating, setAverageRating] = useState<number | null>(null);
+  const [totalReviews, setTotalReviews] = useState<number>(0);
 
   const fetchUserProducts = async () => {
     if (!user?.id) {
@@ -46,10 +66,35 @@ const Home: React.FC = () => {
     }
   };
 
+  // Fetch ratings for the producer to calculate average
+  const fetchProducerRatings = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await apiClient.get(`/v1/ratings/?producer_id=${user.id}`);
+      const ratings = response.data;
+      
+      if (ratings && ratings.length > 0) {
+        const totalRating = ratings.reduce((sum: number, rating: any) => sum + rating.rating, 0);
+        const average = totalRating / ratings.length;
+        setAverageRating(Math.round(average * 10) / 10); // Round to 1 decimal place
+        setTotalReviews(ratings.length);
+      } else {
+        setAverageRating(null);
+        setTotalReviews(0);
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch producer ratings:", err);
+      setAverageRating(null);
+      setTotalReviews(0);
+    }
+  };
+
   useEffect(() => {
-    // Fetch products when component mounts or user changes
+    // Fetch products and ratings when component mounts or user changes
     if (user?.id) {
       fetchUserProducts();
+      fetchProducerRatings();
     }
   }, [user?.id]);
 
@@ -92,6 +137,63 @@ const Home: React.FC = () => {
         <ProducerSupplyBar activePage="products" />
         {/* Main Content */}
         <Flex flex="1" direction="column" p={6}>
+          {/* Producer Information Card */}
+          <Card mb={6} shadow="lg" borderRadius="xl">
+            <CardHeader pb={2}>
+              <Flex align="center" gap={4}>
+                <Avatar 
+                  size="xl" 
+                  name={user?.username || username}
+                  bg="teal.500"
+                  color="white"
+                />
+                <Box flex="1">
+                  <Heading size="lg" color="teal.600" mb={2}>
+                    {user?.username || username}
+                  </Heading>
+                  <VStack align="start" spacing={2}>
+                    <HStack>
+                      <Icon as={EmailIcon} color="gray.500" />
+                      <Text color="gray.600" fontSize="sm">
+                        {user?.email || "No email provided"}
+                      </Text>
+                    </HStack>
+                    <HStack>
+                      <Icon as={PhoneIcon} color="gray.500" />
+                      <Text color="gray.600" fontSize="sm">
+                        (555) 123-4567
+                      </Text>
+                    </HStack>
+                    <HStack>
+                      <Icon as={StarIcon} color="yellow.400" />
+                      <Text color="gray.600" fontSize="sm">
+                        {averageRating !== null 
+                          ? `${averageRating} Rating (${totalReviews} review${totalReviews !== 1 ? 's' : ''}) • Local Farm`
+                          : "No ratings yet • Local Farm"
+                        }
+                      </Text>
+                    </HStack>
+                  </VStack>
+                </Box>
+                <VStack align="end" spacing={2}>
+                  <Badge colorScheme="green" px={3} py={1} borderRadius="full">
+                    Verified Producer
+                  </Badge>
+                  <Badge colorScheme="blue" px={3} py={1} borderRadius="full">
+                    {products.length} Products
+                  </Badge>
+                </VStack>
+              </Flex>
+            </CardHeader>
+            <CardBody pt={2}>
+              <Text color="gray.600" fontSize="sm">
+                Welcome to my farm! I specialize in fresh, locally grown produce 
+                using sustainable farming practices. All my products are harvested at peak ripeness 
+                to ensure the best quality and flavor for my customers.
+              </Text>
+            </CardBody>
+          </Card>
+
           <Flex justify="flex-start" align="center" mb={4}>
             <Heading color="teal.600" size="lg">My Products</Heading>
           </Flex>
