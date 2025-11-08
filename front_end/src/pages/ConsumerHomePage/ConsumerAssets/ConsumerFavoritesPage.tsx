@@ -33,7 +33,11 @@ interface Producer {
   followedDate?: string;
 }
 
-const ConsumerFavoritesPage: React.FC = () => {
+interface ConsumerFavoritesPageProps {
+  onViewProducts?: (producer: Producer) => void;
+}
+
+const ConsumerFavoritesPage: React.FC<ConsumerFavoritesPageProps> = ({ onViewProducts }) => {
   const [followedProducers, setFollowedProducers] = useState<Producer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -181,15 +185,19 @@ const ConsumerFavoritesPage: React.FC = () => {
   };
 
   const handleViewProducts = (producer: Producer) => {
-    // Placeholder for viewing producer's products
-    console.log("View products for:", producer.username);
-    toast({
-      title: "View Products",
-      description: `Viewing products from ${producer.username}`,
-      status: "info",
-      duration: 3000,
-      isClosable: true,
-    });
+    if (onViewProducts) {
+      onViewProducts(producer);
+    } else {
+      // Fallback for when callback is not provided
+      console.log("View products for:", producer.username);
+      toast({
+        title: "View Products",
+        description: `Viewing products from ${producer.username}`,
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const formatDate = (dateString: string | undefined): string => {

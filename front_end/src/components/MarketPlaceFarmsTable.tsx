@@ -50,6 +50,7 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
   const [followedProducers, setFollowedProducers] = useState<Set<string>>(new Set());
   const [followingInProgress, setFollowingInProgress] = useState<Set<string>>(new Set());
   const [selectedProducer, setSelectedProducer] = useState<Producer | null>(null);
+  const [followersCount, setFollowersCount] = useState<Record<string, number>>({});
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const toast = useToast();
@@ -86,6 +87,29 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
       );
       
       setProducers(producersWithCounts);
+
+      // Fetch follower counts for each producer
+      try {
+        const followerCountsArray = await Promise.all(
+          producersWithCounts.map(async (p: Producer) => {
+            try {
+              const res = await apiClient.get(`/v1/producer_consumer_matches/?producer_id=${p.id}`);
+              return { id: p.id, count: Array.isArray(res.data) ? res.data.length : 0 };
+            } catch (e) {
+              console.error(`Failed to fetch followers for producer ${p.id}:`, e);
+              return { id: p.id, count: 0 };
+            }
+          })
+        );
+
+        const countsMap: Record<string, number> = {};
+        followerCountsArray.forEach(item => {
+          countsMap[item.id] = item.count;
+        });
+        setFollowersCount(countsMap);
+      } catch (e) {
+        console.error("Failed to fetch follower counts:", e);
+      }
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || "Failed to fetch producers";
       setFetchError(errorMessage);
@@ -305,6 +329,7 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
             <Tr>
               <Th>Producer Name</Th>
               <Th>Email</Th>
+              <Th>Followers</Th>
               <Th>Products Available</Th>
               <Th>Actions</Th>
             </Tr>
@@ -321,6 +346,11 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
                   <Text fontSize="sm" color="gray.600">
                     {producer.email}
                   </Text>
+                </Td>
+                <Td>
+                  <Badge colorScheme={followersCount[producer.id] && followersCount[producer.id] > 0 ? "green" : "gray"} variant="subtle" fontSize="sm" px={3} py={1}>
+                    {typeof followersCount[producer.id] === "number" ? followersCount[producer.id] : 0} Followers
+                  </Badge>
                 </Td>
                 <Td>
                   <Badge

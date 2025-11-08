@@ -74,7 +74,7 @@ const ConsumerHome: React.FC = () => {
           </Box>
         );
       case "favorites":
-        return <ConsumerFavoritesPage />;
+        return <ConsumerFavoritesPage onViewProducts={handleViewFarmerProducts} />;
       case "category-vegetables":
       case "category-fruits":
       case "category-grains":
