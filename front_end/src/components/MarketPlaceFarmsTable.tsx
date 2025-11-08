@@ -40,9 +40,10 @@ interface Producer {
 interface MarketPlaceFarmsTableProps {
   loading?: boolean;
   error?: string;
+  onViewProducts?: (producer: Producer) => void;
 }
 
-const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, error }) => {
+const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, error, onViewProducts }) => {
   const [producers, setProducers] = useState<Producer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string>("");
@@ -241,15 +242,19 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
   }, []);
 
   const handleViewProducts = (producer: Producer) => {
-    // Placeholder for viewing producer's products
-    console.log("View products for:", producer.username);
-    toast({
-      title: "View Products",
-      description: `Viewing products from ${producer.username}`,
-      status: "info",
-      duration: 3000,
-      isClosable: true,
-    });
+    if (onViewProducts) {
+      onViewProducts(producer);
+    } else {
+      // Fallback if no handler provided
+      console.log("View products for:", producer.username);
+      toast({
+        title: "View Products",
+        description: `Viewing products from ${producer.username}`,
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const displayLoading = loading || isLoading;

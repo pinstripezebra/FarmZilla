@@ -5,13 +5,23 @@ import ConsumerSideBar from "./ConsumerAssets/ConsumerSideBar";
 import MarketplaceProductsTable from "../../components/MarketplaceProductsTable";
 import MarketPlaceFarmsTable from "../../components/MarketPlaceFarmsTable";
 import ConsumerFavoritesPage from "./ConsumerAssets/ConsumerFavoritesPage";
+import ViewFarmerProducts from "./ConsumerAssets/ViewFarmerProducts";
 import { useUser } from "../../context/UserContex";
+
+interface Producer {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+  productCount?: number;
+}
 
 const ConsumerHome: React.FC = () => {
   const navigate = useNavigate();
   const { user, setUser } = useUser();
   const username = user?.username || localStorage.getItem("username") || "User";
   const [currentView, setCurrentView] = useState<string>("welcome");
+  const [selectedProducer, setSelectedProducer] = useState<Producer | null>(null);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -23,6 +33,17 @@ const ConsumerHome: React.FC = () => {
   const handleSidebarAction = (action: string) => {
     console.log("Sidebar action triggered:", action);
     setCurrentView(action);
+    setSelectedProducer(null); // Clear selected producer when changing views
+  };
+
+  const handleViewFarmerProducts = (producer: Producer) => {
+    setSelectedProducer(producer);
+    setCurrentView("view-farmer-products");
+  };
+
+  const handleBackToFarmers = () => {
+    setSelectedProducer(null);
+    setCurrentView("browse-farmers");
   };
 
   const renderContent = () => {
@@ -30,7 +51,20 @@ const ConsumerHome: React.FC = () => {
       case "browse-products":
         return <MarketplaceProductsTable />;
       case "browse-farmers":
-        return <MarketPlaceFarmsTable />;
+        return <MarketPlaceFarmsTable onViewProducts={handleViewFarmerProducts} />;
+      case "view-farmer-products":
+        return selectedProducer ? (
+          <ViewFarmerProducts 
+            producer={selectedProducer} 
+            onBack={handleBackToFarmers} 
+          />
+        ) : (
+          <Box display="flex" alignItems="center" justifyContent="center" flex="1">
+            <Text fontWeight="bold" fontSize="2xl" color="gray.500">
+              No farmer selected
+            </Text>
+          </Box>
+        );
       case "my-orders":
         return (
           <Box display="flex" alignItems="center" justifyContent="center" flex="1">
@@ -79,7 +113,12 @@ const ConsumerHome: React.FC = () => {
         {/* Main Content */}
         <Flex flex="1" direction="column" p={6}>
           <Flex justify="space-between" align="center" mb={6}>
-            <Heading color="teal.600" size="lg">Marketplace</Heading>
+            <Heading color="teal.600" size="lg">
+              {currentView === "view-farmer-products" && selectedProducer 
+                ? `${selectedProducer.username}'s Products`
+                : "Marketplace"
+              }
+            </Heading>
             <Button colorScheme="teal" onClick={handleLogout}>
               Logout
             </Button>
