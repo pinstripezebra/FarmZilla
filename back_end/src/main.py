@@ -26,7 +26,8 @@ from .models import (
     Product, ProductModel,
     ProducerConsumerMatch, ProducerConsumerMatchModel,
     Event, EventModel,
-    EventVendor, EventVendorModel
+    EventVendor, EventVendorModel,
+    Rating, RatingModel
 )
 
 
@@ -231,6 +232,28 @@ async def fetch_event_vendors(event_id: str = None, consumer_id: str = None, db:
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching event vendors: {str(e)}")
+
+@app.get("/api/v1/ratings/")
+async def fetch_ratings(producer_id: str = None, consumer_id: str = None, db: Session = Depends(get_db)):
+    """
+    Fetch ratings with optional filters:
+    - producer_id: all ratings for a specific producer
+    - consumer_id: all ratings by a specific consumer
+    - no parameters: all ratings
+    """
+    try:
+        query = db.query(Rating)
+        
+        if producer_id:
+            query = query.filter(Rating.producer_id == producer_id)
+        elif consumer_id:
+            query = query.filter(Rating.consumer_id == consumer_id)
+        
+        ratings = query.all()
+        return [RatingModel.from_orm(rating) for rating in ratings]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching ratings: {str(e)}")
 
 # for verifying JWT token
 @app.get("/api/v1/verify/{token}")
@@ -455,6 +478,52 @@ async def create_event_vendor(event_id: str, consumer_id: str, db: Session = Dep
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating event vendor relationship: {str(e)}")
+
+# for creating ratings
+@app.post("/api/v1/ratings/")
+async def create_rating(rating: RatingModel, db: Session = Depends(get_db)):
+    """
+    Create a new rating for a producer
+    """
+    try:
+        # Validate rating is between 1-5
+        if rating.rating < 1 or rating.rating > 5:
+            raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+        
+        # Check if consumer has already rated this producer
+        existing_rating = db.query(Rating).filter(
+            Rating.producer_id == rating.producer_id,
+            Rating.consumer_id == rating.consumer_id
+        ).first()
+        
+        if existing_rating:
+            raise HTTPException(status_code=400, detail="You have already rated this producer")
+        
+        # Create new rating
+        rating_data = rating.dict()
+        if rating_data.get('id') is None:
+            rating_data.pop('id', None)
+        if rating_data.get('date') is None:
+            rating_data['date'] = datetime.utcnow()
+        
+        new_rating = Rating(**rating_data)
+        db.add(new_rating)
+        db.commit()
+        db.refresh(new_rating)
+        
+        return {
+            "message": "Rating created successfully",
+            "id": str(new_rating.id),
+            "producer_id": rating.producer_id,
+            "consumer_id": rating.consumer_id,
+            "rating": rating.rating
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating rating: {str(e)}")
     
 
 #-------------------------------------------------#

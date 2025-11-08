@@ -109,6 +109,7 @@ project_root = os.path.dirname(back_end_dir)  # /project_root
 users = pd.read_csv(os.path.join(project_root, 'data', 'users.csv'))
 products = pd.read_csv(os.path.join(project_root, 'data', 'products.csv'))
 producer_consumer_matches = pd.read_csv(os.path.join(project_root, 'data', 'producer_consumer_matches.csv'))
+ratings = pd.read_csv(os.path.join(project_root, 'data', 'ratings.csv'))
 
 # Create sample events data based on EventsMap.tsx
 events_data = [
@@ -200,12 +201,23 @@ event_vendor_table_creation_query = """CREATE TABLE IF NOT EXISTS event_vendor (
     )
     """
 
+ratings_table_creation_query = """CREATE TABLE IF NOT EXISTS ratings (
+    id UUID PRIMARY KEY,
+    producer_id VARCHAR(255) NOT NULL,
+    consumer_id VARCHAR(255) NOT NULL,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    review TEXT,
+    date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """
+
 # Deleting tables if they already exist
 engine.delete_table('users')
 engine.delete_table('products')
 engine.delete_table('producer_consumer_matches')
 engine.delete_table('events')
 engine.delete_table('event_vendor')
+engine.delete_table('ratings')
 
 # Create tables
 engine.create_table(users_table_creation_query)
@@ -213,6 +225,7 @@ engine.create_table(products_table_creation_query)
 engine.create_table(producer_consumer_matching_table_creation_query)
 engine.create_table(events_table_creation_query)
 engine.create_table(event_vendor_table_creation_query)
+engine.create_table(ratings_table_creation_query)
 
 
 # Ensuring each row of each dataframe has a unique ID
@@ -228,6 +241,10 @@ if 'id' not in events.columns:
     events['id'] = [str(uuid.uuid4()) for _ in range(len(events))]
 if 'id' not in event_vendor.columns:
     event_vendor['id'] = [str(uuid.uuid4()) for _ in range(len(event_vendor))]
+
+# Add unique IDs for ratings
+if 'id' not in ratings.columns:
+    ratings['id'] = [str(uuid.uuid4()) for _ in range(len(ratings))]
 
 # Upload images to S3 and get URLs
 print("Uploading product images to S3...")
@@ -263,6 +280,7 @@ engine.populate_table_dynamic(products, 'products')
 engine.populate_table_dynamic(producer_consumer_matches, 'producer_consumer_matches')
 engine.populate_table_dynamic(events, 'events')
 engine.populate_table_dynamic(event_vendor, 'event_vendor')
+engine.populate_table_dynamic(ratings, 'ratings')
 
 # Testing if the tables were created and populated correctly
 print(engine.test_table('users'))
@@ -270,3 +288,4 @@ print(engine.test_table('products'))
 print(engine.test_table('producer_consumer_matches'))
 print(engine.test_table('events'))
 print(engine.test_table('event_vendor'))
+print(engine.test_table('ratings'))

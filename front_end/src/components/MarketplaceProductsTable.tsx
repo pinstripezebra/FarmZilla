@@ -34,9 +34,10 @@ interface Product {
 interface MarketplaceProductsTableProps {
   loading?: boolean;
   error?: string;
+  onViewProducer?: (producer: { id: string; username: string; email: string; role: string }) => void;
 }
 
-const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loading, error }) => {
+const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loading, error, onViewProducer }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string>("");
@@ -122,6 +123,19 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
   const totalPages = Math.ceil(allProducts.length / itemsPerPage);
   const hasNextPage = currentPage < totalPages - 1;
   const hasPrevPage = currentPage > 0;
+
+  const handleViewProducer = (product: Product) => {
+    if (onViewProducer && product.user_id) {
+      // Create producer object from product data
+      const producer = {
+        id: product.user_id,
+        username: product.username || "Unknown Producer",
+        email: "", // We don't have email in product data, could fetch if needed
+        role: "producer"
+      };
+      onViewProducer(producer);
+    }
+  };
 
   const handleAddToCart = (product: Product) => {
     // Placeholder for add to cart functionality
@@ -258,7 +272,15 @@ const MarketplaceProductsTable: React.FC<MarketplaceProductsTableProps> = ({ loa
                   </Text>
                 </Td>
                 <Td>
-                  <Text fontSize="sm" color="teal.600" fontWeight="medium">
+                  <Text 
+                    fontSize="sm" 
+                    color="teal.600" 
+                    fontWeight="medium"
+                    cursor="pointer"
+                    textDecoration="underline"
+                    _hover={{ color: "teal.800", textDecoration: "none" }}
+                    onClick={() => handleViewProducer(product)}
+                  >
                     {product.username || "Unknown Producer"}
                   </Text>
                 </Td>

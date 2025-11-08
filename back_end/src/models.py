@@ -116,3 +116,23 @@ class EventVendorModel(BaseModel):
     class Config:
         orm_mode = True
         from_attributes = True
+
+class Rating(Base):
+    __tablename__ = "ratings"
+    id = Column(pg.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
+    producer_id = Column(String, nullable=False)
+    consumer_id = Column(String, nullable=False)
+    rating = Column(Integer, nullable=False)  # 1-5 rating
+    review = Column(String, nullable=True)   # Optional review text
+    date = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+class RatingModel(BaseModel):
+    id: Optional[UUID] = None
+    producer_id: str
+    consumer_id: str
+    rating: int  # Should be between 1-5
+    review: Optional[str] = None
+    date: Optional[datetime] = None
+    class Config:
+        orm_mode = True
+        from_attributes = True

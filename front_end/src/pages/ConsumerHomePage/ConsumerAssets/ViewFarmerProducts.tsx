@@ -27,6 +27,17 @@ import {
   Icon,
   VStack,
   HStack,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
+  Textarea,
+  FormControl,
+  FormLabel,
 } from "@chakra-ui/react";
 import { ArrowBackIcon, EmailIcon, PhoneIcon, StarIcon } from "@chakra-ui/icons";
 import apiClient from "../../../services/apli-client";
@@ -56,6 +67,10 @@ const ViewFarmerProducts: React.FC<ViewFarmerProductsProps> = ({ producer, onBac
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  const [rating, setRating] = useState(0);
+  const [review, setReview] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
 
   // Fetch products for the specific farmer
@@ -102,6 +117,74 @@ const ViewFarmerProducts: React.FC<ViewFarmerProductsProps> = ({ producer, onBac
 
   const handleImageLoad = (product: Product) => {
     console.log(`Successfully loaded image for ${product.product_name}:`, product.image_url);
+  };
+
+  const handleSubmitReview = async () => {
+    if (rating === 0) {
+      toast({
+        title: "Rating Required",
+        description: "Please select a star rating before submitting.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsSubmittingReview(true);
+
+    try {
+      const currentUserId = localStorage.getItem("userId");
+      if (!currentUserId) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to submit a review.",
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      const reviewData = {
+        producer_id: producer.id,
+        consumer_id: currentUserId,
+        rating: rating,
+        review: review.trim() || null,
+      };
+
+      await apiClient.post("/v1/ratings/", reviewData);
+
+      toast({
+        title: "Review Submitted!",
+        description: `Thank you for reviewing ${producer.username}!`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Reset form and close modal
+      setRating(0);
+      setReview("");
+      onClose();
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || err.message || "Failed to submit review";
+      toast({
+        title: "Review Failed",
+        description: errorMessage,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const handleModalClose = () => {
+    setRating(0);
+    setReview("");
+    onClose();
   };
 
   if (isLoading) {
@@ -178,11 +261,19 @@ const ViewFarmerProducts: React.FC<ViewFarmerProductsProps> = ({ producer, onBac
           </Flex>
         </CardHeader>
         <CardBody pt={2}>
-          <Text color="gray.600" fontSize="sm">
+          <Text color="gray.600" fontSize="sm" mb={4}>
             Welcome to {producer.username}'s farm! We specialize in fresh, locally grown produce 
             using sustainable farming practices. All our products are harvested at peak ripeness 
             to ensure the best quality and flavor for our customers.
           </Text>
+          <Button
+            colorScheme="teal"
+            size="sm"
+            onClick={onOpen}
+            leftIcon={<StarIcon />}
+          >
+            Review Farmer
+          </Button>
         </CardBody>
       </Card>
 
@@ -305,6 +396,67 @@ const ViewFarmerProducts: React.FC<ViewFarmerProductsProps> = ({ producer, onBac
           </TableContainer>
         )}
       </Box>
+
+      {/* Review Modal */}
+      <Modal isOpen={isOpen} onClose={handleModalClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Review {producer.username}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={4}>
+              {/* Star Rating */}
+              <FormControl>
+                <FormLabel>Rating *</FormLabel>
+                <HStack spacing={2}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Icon
+                      key={star}
+                      as={StarIcon}
+                      boxSize={6}
+                      color={star <= rating ? "yellow.400" : "gray.300"}
+                      cursor="pointer"
+                      onClick={() => setRating(star)}
+                      _hover={{ color: "yellow.400" }}
+                    />
+                  ))}
+                </HStack>
+                {rating > 0 && (
+                  <Text fontSize="sm" color="gray.600" mt={1}>
+                    {rating} out of 5 stars
+                  </Text>
+                )}
+              </FormControl>
+
+              {/* Review Text */}
+              <FormControl>
+                <FormLabel>Review (Optional)</FormLabel>
+                <Textarea
+                  placeholder="Share your experience with this farmer..."
+                  value={review}
+                  onChange={(e) => setReview(e.target.value)}
+                  rows={4}
+                  resize="vertical"
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={handleModalClose}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="teal"
+              onClick={handleSubmitReview}
+              isLoading={isSubmittingReview}
+              loadingText="Submitting..."
+            >
+              Submit Review
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

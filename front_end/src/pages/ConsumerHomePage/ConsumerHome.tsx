@@ -49,7 +49,7 @@ const ConsumerHome: React.FC = () => {
   const renderContent = () => {
     switch (currentView) {
       case "browse-products":
-        return <MarketplaceProductsTable />;
+        return <MarketplaceProductsTable onViewProducer={handleViewFarmerProducts} />;
       case "browse-farmers":
         return <MarketPlaceFarmsTable onViewProducts={handleViewFarmerProducts} />;
       case "view-farmer-products":
