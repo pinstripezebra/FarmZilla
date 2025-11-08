@@ -103,8 +103,10 @@ function Login() {
         const userData = userRes.data[0];
         setUser(userData);
         
-        // Optionally, store username for legacy code
+        // Store user data in localStorage for persistence
         localStorage.setItem("username", userData.username);
+        localStorage.setItem("userId", userData.id);
+        localStorage.setItem("userRole", userData.role);
         
         console.log("User role:", userData.role);
         

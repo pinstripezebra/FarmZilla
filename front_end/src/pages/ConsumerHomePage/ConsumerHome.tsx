@@ -5,15 +5,18 @@ import ConsumerSideBar from "./ConsumerAssets/ConsumerSideBar";
 import MarketplaceProductsTable from "../../components/MarketplaceProductsTable";
 import MarketPlaceFarmsTable from "../../components/MarketPlaceFarmsTable";
 import ConsumerFavoritesPage from "./ConsumerAssets/ConsumerFavoritesPage";
+import { useUser } from "../../context/UserContex";
 
 const ConsumerHome: React.FC = () => {
   const navigate = useNavigate();
-  const username = localStorage.getItem("username") || "User";
+  const { user, setUser } = useUser();
+  const username = user?.username || localStorage.getItem("username") || "User";
   const [currentView, setCurrentView] = useState<string>("welcome");
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
+    setUser(null); // Clear user context
     navigate("/Logout");
   };
 

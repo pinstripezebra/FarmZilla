@@ -19,6 +19,7 @@ import {
   Badge,
 } from "@chakra-ui/react";
 import apiClient from "../services/apli-client";
+import { useUser } from "../context/UserContex";
 
 interface Producer {
   id: string;
@@ -40,6 +41,7 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
   const [followedProducers, setFollowedProducers] = useState<Set<string>>(new Set());
   const [followingInProgress, setFollowingInProgress] = useState<Set<string>>(new Set());
   const toast = useToast();
+  const { user } = useUser();
 
   // Function to fetch product count for a specific producer
   const fetchProductCount = async (userId: string): Promise<number> => {
@@ -89,7 +91,7 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
 
   // Function to fetch current user's followed producers
   const fetchFollowedProducers = async () => {
-    const currentUserId = localStorage.getItem("userId") || localStorage.getItem("user_id");
+    const currentUserId = user?.id || localStorage.getItem("userId");
     if (!currentUserId) return;
 
     try {
@@ -103,7 +105,7 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
 
   // Function to handle following a producer
   const handleFollowProducer = async (producer: Producer) => {
-    const currentUserId = localStorage.getItem("userId") || localStorage.getItem("user_id");
+    const currentUserId = user?.id || localStorage.getItem("userId");
     
     if (!currentUserId) {
       toast({

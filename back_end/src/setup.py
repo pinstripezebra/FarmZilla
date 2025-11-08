@@ -101,7 +101,11 @@ def upload_images_to_s3():
     return image_urls
 
 # loading csv files into pandas dataframes
-project_root = os.path.dirname(os.path.dirname(os.getcwd()))  # Go up two directories to project root
+# Get the project root by going up from this file's location
+current_file_dir = os.path.dirname(os.path.abspath(__file__))  # /back_end/src
+back_end_dir = os.path.dirname(current_file_dir)  # /back_end
+project_root = os.path.dirname(back_end_dir)  # /project_root
+
 users = pd.read_csv(os.path.join(project_root, 'data', 'users.csv'))
 products = pd.read_csv(os.path.join(project_root, 'data', 'products.csv'))
 producer_consumer_matches = pd.read_csv(os.path.join(project_root, 'data', 'producer_consumer_matches.csv'))

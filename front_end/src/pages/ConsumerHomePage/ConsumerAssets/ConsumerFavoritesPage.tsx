@@ -22,6 +22,7 @@ import {
 } from "@chakra-ui/react";
 import { matchService, type ProducerConsumerMatch } from "../../../services/matchService";
 import apiClient from "../../../services/apli-client";
+import { useUser } from "../../../context/UserContex";
 
 interface Producer {
   id: string;
@@ -38,6 +39,7 @@ const ConsumerFavoritesPage: React.FC = () => {
   const [error, setError] = useState<string>("");
   const [unfollowingInProgress, setUnfollowingInProgress] = useState<Set<string>>(new Set());
   const toast = useToast();
+  const { user } = useUser();
 
   // Function to fetch producer details by ID
   const fetchProducerDetails = async (producerId: string): Promise<Producer | null> => {
@@ -66,7 +68,7 @@ const ConsumerFavoritesPage: React.FC = () => {
 
   // Function to fetch followed producers
   const fetchFollowedProducers = async () => {
-    const currentUserId = localStorage.getItem("userId") || localStorage.getItem("user_id");
+    const currentUserId = user?.id || localStorage.getItem("userId");
     
     if (!currentUserId) {
       setError("Please log in to view your followed producers.");
@@ -130,7 +132,7 @@ const ConsumerFavoritesPage: React.FC = () => {
 
   // Function to handle unfollowing a producer
   const handleUnfollowProducer = async (producer: Producer) => {
-    const currentUserId = localStorage.getItem("userId") || localStorage.getItem("user_id");
+    const currentUserId = user?.id || localStorage.getItem("userId");
     
     if (!currentUserId) {
       toast({
