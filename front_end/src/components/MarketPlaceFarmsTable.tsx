@@ -24,8 +24,10 @@ import {
   AlertDialogBody,
   AlertDialogFooter,
   useDisclosure,
+  Icon,
+  HStack,
 } from "@chakra-ui/react";
-import { CheckIcon } from "@chakra-ui/icons";
+import { CheckIcon, StarIcon } from "@chakra-ui/icons";
 import apiClient from "../services/apli-client";
 import { useUser } from "../context/UserContex";
 
@@ -51,6 +53,7 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
   const [followingInProgress, setFollowingInProgress] = useState<Set<string>>(new Set());
   const [selectedProducer, setSelectedProducer] = useState<Producer | null>(null);
   const [followersCount, setFollowersCount] = useState<Record<string, number>>({});
+  const [averageRatings, setAverageRatings] = useState<Record<string, number | null>>({});
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const toast = useToast();
@@ -109,6 +112,34 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
         setFollowersCount(countsMap);
       } catch (e) {
         console.error("Failed to fetch follower counts:", e);
+      }
+
+      // Fetch average ratings for each producer
+      try {
+        const ratingsArray = await Promise.all(
+          producersWithCounts.map(async (p: Producer) => {
+            try {
+              const res = await apiClient.get(`/v1/ratings/?producer_id=${p.id}`);
+              if (Array.isArray(res.data) && res.data.length > 0) {
+                const totalRating = res.data.reduce((sum: number, rating: any) => sum + rating.rating, 0);
+                const average = totalRating / res.data.length;
+                return { id: p.id, average: Math.round(average * 10) / 10 }; // Round to 1 decimal
+              }
+              return { id: p.id, average: null };
+            } catch (e) {
+              console.error(`Failed to fetch ratings for producer ${p.id}:`, e);
+              return { id: p.id, average: null };
+            }
+          })
+        );
+
+        const ratingsMap: Record<string, number | null> = {};
+        ratingsArray.forEach(item => {
+          ratingsMap[item.id] = item.average;
+        });
+        setAverageRatings(ratingsMap);
+      } catch (e) {
+        console.error("Failed to fetch producer ratings:", e);
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || "Failed to fetch producers";
@@ -329,6 +360,7 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
             <Tr>
               <Th>Producer Name</Th>
               <Th>Email</Th>
+              <Th>Avg Rating</Th>
               <Th>Followers</Th>
               <Th>Products Available</Th>
               <Th>Actions</Th>
@@ -346,6 +378,20 @@ const MarketPlaceFarmsTable: React.FC<MarketPlaceFarmsTableProps> = ({ loading, 
                   <Text fontSize="sm" color="gray.600">
                     {producer.email}
                   </Text>
+                </Td>
+                <Td>
+                  {averageRatings[producer.id] !== null && averageRatings[producer.id] !== undefined ? (
+                    <HStack spacing={1}>
+                      <Icon as={StarIcon} color="yellow.400" boxSize={3} />
+                      <Text fontSize="sm" fontWeight="medium" color="gray.700">
+                        {averageRatings[producer.id]}
+                      </Text>
+                    </HStack>
+                  ) : (
+                    <Text fontSize="sm" color="gray.400">
+                      No ratings
+                    </Text>
+                  )}
                 </Td>
                 <Td>
                   <Badge colorScheme={followersCount[producer.id] && followersCount[producer.id] > 0 ? "green" : "gray"} variant="subtle" fontSize="sm" px={3} py={1}>

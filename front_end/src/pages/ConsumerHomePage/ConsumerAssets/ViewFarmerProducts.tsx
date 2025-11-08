@@ -70,6 +70,9 @@ const ViewFarmerProducts: React.FC<ViewFarmerProductsProps> = ({ producer, onBac
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [averageRating, setAverageRating] = useState<number | null>(null);
+  const [totalReviews, setTotalReviews] = useState<number>(0);
+  const [reviews, setReviews] = useState<any[]>([]);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
 
@@ -96,8 +99,56 @@ const ViewFarmerProducts: React.FC<ViewFarmerProductsProps> = ({ producer, onBac
     }
   };
 
+  // Fetch ratings for the producer to calculate average
+  const fetchProducerRatings = async () => {
+    try {
+      const response = await apiClient.get(`/v1/ratings/?producer_id=${producer.id}`);
+      const ratings = response.data;
+      
+      if (ratings && ratings.length > 0) {
+        const totalRating = ratings.reduce((sum: number, rating: any) => sum + rating.rating, 0);
+        const average = totalRating / ratings.length;
+        setAverageRating(Math.round(average * 10) / 10); // Round to 1 decimal place
+        setTotalReviews(ratings.length);
+
+        // Fetch usernames for each review
+        const reviewsWithUsernames = await Promise.all(
+          ratings.map(async (rating: any) => {
+            try {
+              const userResponse = await apiClient.get(`/v1/user/${rating.consumer_id}/username`);
+              return {
+                ...rating,
+                username: userResponse.data.username
+              };
+            } catch (error) {
+              console.error(`Failed to fetch username for consumer ${rating.consumer_id}:`, error);
+              return {
+                ...rating,
+                username: "Unknown User"
+              };
+            }
+          })
+        );
+        
+        // Sort reviews by date (newest first)
+        reviewsWithUsernames.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setReviews(reviewsWithUsernames);
+      } else {
+        setAverageRating(null);
+        setTotalReviews(0);
+        setReviews([]);
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch producer ratings:", err);
+      setAverageRating(null);
+      setTotalReviews(0);
+      setReviews([]);
+    }
+  };
+
   useEffect(() => {
     fetchFarmerProducts();
+    fetchProducerRatings();
   }, [producer.id]);
 
   const handleAddToCart = (product: Product) => {
@@ -163,6 +214,9 @@ const ViewFarmerProducts: React.FC<ViewFarmerProductsProps> = ({ producer, onBac
         isClosable: true,
       });
 
+      // Refresh ratings to update average
+      fetchProducerRatings();
+
       // Reset form and close modal
       setRating(0);
       setReview("");
@@ -185,6 +239,36 @@ const ViewFarmerProducts: React.FC<ViewFarmerProductsProps> = ({ producer, onBac
     setRating(0);
     setReview("");
     onClose();
+  };
+
+  // Helper function to render star rating
+  const renderStars = (rating: number) => {
+    return (
+      <HStack spacing={1}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Icon
+            key={star}
+            as={StarIcon}
+            boxSize={4}
+            color={star <= rating ? "yellow.400" : "gray.300"}
+          />
+        ))}
+      </HStack>
+    );
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return "Unknown date";
+    }
   };
 
   if (isLoading) {
@@ -245,7 +329,10 @@ const ViewFarmerProducts: React.FC<ViewFarmerProductsProps> = ({ producer, onBac
                 <HStack>
                   <Icon as={StarIcon} color="yellow.400" />
                   <Text color="gray.600" fontSize="sm">
-                    4.8 Rating • Local Farm
+                    {averageRating !== null 
+                      ? `${averageRating} Rating (${totalReviews} review${totalReviews !== 1 ? 's' : ''}) • Local Farm`
+                      : "No ratings yet • Local Farm"
+                    }
                   </Text>
                 </HStack>
               </VStack>
@@ -394,6 +481,61 @@ const ViewFarmerProducts: React.FC<ViewFarmerProductsProps> = ({ producer, onBac
               </Tbody>
             </Table>
           </TableContainer>
+        )}
+      </Box>
+
+      {/* Reviews Section */}
+      <Box mt={8}>
+        <Heading size="md" mb={4} color="teal.600">
+          Customer Reviews ({totalReviews})
+        </Heading>
+
+        {reviews.length === 0 ? (
+          <Alert status="info" borderRadius="md">
+            <AlertIcon />
+            <Box>
+              <AlertTitle>No reviews yet</AlertTitle>
+              <AlertDescription>
+                Be the first to review {producer.username}! Click the "Review Farmer" button above to share your experience.
+              </AlertDescription>
+            </Box>
+          </Alert>
+        ) : (
+          <VStack spacing={4} align="stretch">
+            {reviews.map((review) => (
+              <Card key={review.id} borderRadius="md" shadow="sm">
+                <CardBody>
+                  <Flex justify="space-between" align="start" mb={3}>
+                    <VStack align="start" spacing={1}>
+                      <HStack>
+                        {renderStars(review.rating)}
+                        <Text fontSize="sm" fontWeight="medium" color="gray.700">
+                          {review.rating}/5
+                        </Text>
+                      </HStack>
+                      <HStack>
+                        <Text fontSize="sm" fontWeight="medium" color="teal.600">
+                          {review.username}
+                        </Text>
+                        <Text fontSize="sm" color="gray.500">
+                          •
+                        </Text>
+                        <Text fontSize="sm" color="gray.500">
+                          {formatDate(review.date)}
+                        </Text>
+                      </HStack>
+                    </VStack>
+                  </Flex>
+                  
+                  {review.review && (
+                    <Text fontSize="sm" color="gray.700" lineHeight="1.5">
+                      {review.review}
+                    </Text>
+                  )}
+                </CardBody>
+              </Card>
+            ))}
+          </VStack>
         )}
       </Box>
 
