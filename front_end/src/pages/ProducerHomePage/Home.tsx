@@ -22,6 +22,7 @@ import ProducerSupplyBar from "./HomePageAssets/ProducerSupplyBar";
 import ProductEntryForm from "./HomePageAssets/ProductEntryForm";
 import UserProductsTable from "../../components/UserProductsTable";
 import ProducerEventsList from "../../components/ProducerEventsList";
+import FarmerReviews from "../../components/FarmerReviews";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../context/UserContex";
 import { productService, type Product } from "../../services/productService";
@@ -219,7 +220,7 @@ const Home: React.FC = () => {
           </Flex>
           
           {/* Products Table */}
-          <Box flex="1" overflowY="auto">
+          <Box flex="1" overflowY="auto" mb={6}>
             <UserProductsTable 
               products={products} 
               loading={loading} 
@@ -228,6 +229,17 @@ const Home: React.FC = () => {
               userId={user?.id || ""}
             />
           </Box>
+
+          {/* My Reviews Section */}
+          {user?.id && user?.username && (
+            <Box>
+              <FarmerReviews 
+                producer={{ id: user.id, username: user.username }} 
+                showReviewButton={false}
+                title="My Reviews"
+              />
+            </Box>
+          )}
         </Flex>
       </Flex>
       <ProductEntryForm isOpen={isOpen} onClose={onClose} onProductAdded={refreshProducts} />
