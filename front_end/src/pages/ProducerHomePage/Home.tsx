@@ -7,23 +7,15 @@ import {
   Text, 
   Box, 
   useToast, 
-  useDisclosure,
-  Card,
-  CardHeader,
-  CardBody,
-  Avatar,
-  Badge,
-  VStack,
-  HStack,
-  Icon
+  useDisclosure
 } from "@chakra-ui/react";
-import { EmailIcon, PhoneIcon, StarIcon } from "@chakra-ui/icons";
 import ProducerSupplyBar from "./HomePageAssets/ProducerSupplyBar";
 import ProductEntryForm from "./HomePageAssets/ProductEntryForm";
 import ProductModifyForm from "./HomePageAssets/ProductModifyForm";
 import UserProductsTable from "../../components/UserProductsTable";
 import ProducerEventsList from "../../components/ProducerEventsList";
 import FarmerReviews from "../../components/FarmerReviews";
+import ProducerInfoCard from "../../components/ProducerInfoCard";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../context/UserContex";
 import { productService, type Product } from "../../services/productService";
@@ -155,61 +147,22 @@ const Home: React.FC = () => {
         {/* Main Content */}
         <Flex flex="1" direction="column" p={6}>
           {/* Producer Information Card */}
-          <Card mb={6} shadow="lg" borderRadius="xl">
-            <CardHeader pb={2}>
-              <Flex align="center" gap={4}>
-                <Avatar 
-                  size="xl" 
-                  name={user?.username || username}
-                  bg="teal.500"
-                  color="white"
-                />
-                <Box flex="1">
-                  <Heading size="lg" color="teal.600" mb={2}>
-                    {user?.username || username}
-                  </Heading>
-                  <VStack align="start" spacing={2}>
-                    <HStack>
-                      <Icon as={EmailIcon} color="gray.500" />
-                      <Text color="gray.600" fontSize="sm">
-                        {user?.email || "No email provided"}
-                      </Text>
-                    </HStack>
-                    <HStack>
-                      <Icon as={PhoneIcon} color="gray.500" />
-                      <Text color="gray.600" fontSize="sm">
-                        (555) 123-4567
-                      </Text>
-                    </HStack>
-                    <HStack>
-                      <Icon as={StarIcon} color="yellow.400" />
-                      <Text color="gray.600" fontSize="sm">
-                        {averageRating !== null 
-                          ? `${averageRating} Rating (${totalReviews} review${totalReviews !== 1 ? 's' : ''}) • Local Farm`
-                          : "No ratings yet • Local Farm"
-                        }
-                      </Text>
-                    </HStack>
-                  </VStack>
-                </Box>
-                <VStack align="end" spacing={2}>
-                  <Badge colorScheme="green" px={3} py={1} borderRadius="full">
-                    Verified Producer
-                  </Badge>
-                  <Badge colorScheme="blue" px={3} py={1} borderRadius="full">
-                    {products.length} Products
-                  </Badge>
-                </VStack>
-              </Flex>
-            </CardHeader>
-            <CardBody pt={2}>
-              <Text color="gray.600" fontSize="sm">
-                Welcome to my farm! I specialize in fresh, locally grown produce 
-                using sustainable farming practices. All my products are harvested at peak ripeness 
-                to ensure the best quality and flavor for my customers.
-              </Text>
-            </CardBody>
-          </Card>
+          {user && (
+            <ProducerInfoCard 
+              producer={{
+                id: user.id,
+                username: user.username || username,
+                email: user.email || "No email provided",
+                role: user.role || "producer",
+                phone_number: user.phone_number
+              }}
+              averageRating={averageRating}
+              totalReviews={totalReviews}
+              productsCount={products.length}
+              showDescription={true}
+              mb={6}
+            />
+          )}
 
           {/* Upcoming Events Section */}
           {user?.id && (

@@ -5,6 +5,7 @@ export interface UserData {
   username: string;
   email: string;
   role: string;
+  phone_number?: string;
   // add other fields as needed
 }
 

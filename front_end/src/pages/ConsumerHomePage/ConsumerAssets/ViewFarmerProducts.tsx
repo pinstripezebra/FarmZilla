@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Box,
-  Card,
-  CardHeader,
-  CardBody,
-  Text,
-  Avatar,
-  Flex,
-  Badge,
   Button,
   Table,
   Thead,
@@ -24,19 +17,19 @@ import {
   AlertDescription,
   useToast,
   Heading,
-  Icon,
-  VStack,
-  HStack,
+  Text,
 } from "@chakra-ui/react";
-import { ArrowBackIcon, EmailIcon, PhoneIcon, StarIcon } from "@chakra-ui/icons";
+import { ArrowBackIcon } from "@chakra-ui/icons";
 import apiClient from "../../../services/apli-client";
 import FarmerReviews from "../../../components/FarmerReviews";
+import ProducerInfoCard from "../../../components/ProducerInfoCard";
 
 interface Producer {
   id: string;
   username: string;
   email: string;
   role: string;
+  phone_number?: string;
 }
 
 interface Product {
@@ -161,61 +154,14 @@ const ViewFarmerProducts: React.FC<ViewFarmerProductsProps> = ({ producer, onBac
       </Button>
 
       {/* Farmer Information Card */}
-      <Card mb={6} shadow="lg" borderRadius="xl">
-        <CardHeader pb={2}>
-          <Flex align="center" gap={4}>
-            <Avatar 
-              size="xl" 
-              name={producer.username}
-              bg="teal.500"
-              color="white"
-            />
-            <Box flex="1">
-              <Heading size="lg" color="teal.600" mb={2}>
-                {producer.username}
-              </Heading>
-              <VStack align="start" spacing={2}>
-                <HStack>
-                  <Icon as={EmailIcon} color="gray.500" />
-                  <Text color="gray.600" fontSize="sm">
-                    {producer.email}
-                  </Text>
-                </HStack>
-                <HStack>
-                  <Icon as={PhoneIcon} color="gray.500" />
-                  <Text color="gray.600" fontSize="sm">
-                    (555) 123-4567
-                  </Text>
-                </HStack>
-                <HStack>
-                  <Icon as={StarIcon} color="yellow.400" />
-                  <Text color="gray.600" fontSize="sm">
-                    {averageRating !== null 
-                      ? `${averageRating} Rating (${totalReviews} review${totalReviews !== 1 ? 's' : ''}) • Local Farm`
-                      : "No ratings yet • Local Farm"
-                    }
-                  </Text>
-                </HStack>
-              </VStack>
-            </Box>
-            <VStack align="end" spacing={2}>
-              <Badge colorScheme="green" px={3} py={1} borderRadius="full">
-                Verified Producer
-              </Badge>
-              <Badge colorScheme="blue" px={3} py={1} borderRadius="full">
-                {products.length} Products
-              </Badge>
-            </VStack>
-          </Flex>
-        </CardHeader>
-        <CardBody pt={2}>
-          <Text color="gray.600" fontSize="sm">
-            Welcome to {producer.username}'s farm! We specialize in fresh, locally grown produce 
-            using sustainable farming practices. All our products are harvested at peak ripeness 
-            to ensure the best quality and flavor for our customers.
-          </Text>
-        </CardBody>
-      </Card>
+      <ProducerInfoCard 
+        producer={producer}
+        averageRating={averageRating}
+        totalReviews={totalReviews}
+        productsCount={products.length}
+        showDescription={true}
+        mb={6}
+      />
 
       {/* Products Section */}
       <Box>
