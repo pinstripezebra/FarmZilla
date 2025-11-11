@@ -43,7 +43,7 @@ const EventsMap: React.FC<EventsMapProps> = ({
 
         // If user is logged in, fetch their event vendor relationships
         if (user?.id) {
-          const userEventVendorsData = await eventService.getEventVendorsByConsumerId(user.id);
+          const userEventVendorsData = await eventService.getEventVendorsByProducerId(user.id);
           setUserEventVendors(userEventVendorsData);
 
           // Filter events that the user is attending
@@ -213,7 +213,7 @@ const EventsMap: React.FC<EventsMapProps> = ({
       await eventService.createEventVendor(eventId, user.id);
       
       // Refresh the data
-      const updatedUserEventVendors = await eventService.getEventVendorsByConsumerId(user.id);
+      const updatedUserEventVendors = await eventService.getEventVendorsByProducerId(user.id);
       setUserEventVendors(updatedUserEventVendors);
       
       const updatedUserEvents = events.filter(event => 
@@ -259,7 +259,7 @@ const EventsMap: React.FC<EventsMapProps> = ({
       await eventService.deleteEventVendor(eventToWithdraw, user.id);
       
       // Refresh the data
-      const updatedUserEventVendors = await eventService.getEventVendorsByConsumerId(user.id);
+      const updatedUserEventVendors = await eventService.getEventVendorsByProducerId(user.id);
       setUserEventVendors(updatedUserEventVendors);
       
       const updatedUserEvents = events.filter(event => 

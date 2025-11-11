@@ -16,7 +16,7 @@ export interface Event {
 export interface EventVendor {
   id?: string;
   event_id: string;
-  consumer_id: string;
+  producer_id: string;
 }
 
 class EventService {
@@ -86,22 +86,22 @@ class EventService {
     }
   }
 
-  async getEventVendorsByConsumerId(consumerId: string): Promise<EventVendor[]> {
+  async getEventVendorsByProducerId(producerId: string): Promise<EventVendor[]> {
     try {
       const response = await axios.get(`${API_BASE_URL}/event_vendor/`, {
-        params: { consumer_id: consumerId }
+        params: { producer_id: producerId }
       });
       return response.data;
     } catch (error) {
-      console.error('Error fetching event vendors by consumer ID:', error);
+      console.error('Error fetching event vendors by producer ID:', error);
       throw error;
     }
   }
 
-  async createEventVendor(eventId: string, consumerId: string): Promise<any> {
+  async createEventVendor(eventId: string, producerId: string): Promise<any> {
     try {
       const response = await axios.post(`${API_BASE_URL}/event_vendor/`, null, {
-        params: { event_id: eventId, consumer_id: consumerId }
+        params: { event_id: eventId, producer_id: producerId }
       });
       return response.data;
     } catch (error) {
@@ -110,10 +110,10 @@ class EventService {
     }
   }
 
-  async deleteEventVendor(eventId: string, consumerId: string): Promise<any> {
+  async deleteEventVendor(eventId: string, producerId: string): Promise<any> {
     try {
       const response = await axios.delete(`${API_BASE_URL}/event_vendor/`, {
-        params: { event_id: eventId, consumer_id: consumerId }
+        params: { event_id: eventId, producer_id: producerId }
       });
       return response.data;
     } catch (error) {

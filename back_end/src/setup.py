@@ -157,7 +157,7 @@ events_table_creation_query = """CREATE TABLE IF NOT EXISTS events (
 event_vendor_table_creation_query = """CREATE TABLE IF NOT EXISTS event_vendor (
     id UUID PRIMARY KEY,
     event_id VARCHAR(255) NOT NULL,
-    consumer_id VARCHAR(255) NOT NULL
+    producer_id VARCHAR(255) NOT NULL
     )
     """
 

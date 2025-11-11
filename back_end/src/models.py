@@ -109,12 +109,12 @@ class EventVendor(Base):
     __tablename__ = "event_vendor"
     id = Column(pg.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
     event_id = Column(String, nullable=False)
-    consumer_id = Column(String, nullable=False)
+    producer_id = Column(String, nullable=False)
 
 class EventVendorModel(BaseModel):
     id: Optional[UUID] = None
     event_id: str
-    consumer_id: str
+    producer_id: str
     class Config:
         orm_mode = True
         from_attributes = True

@@ -212,11 +212,11 @@ async def fetch_events(event_id: str = None, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error fetching events: {str(e)}")
 
 @app.get("/api/v1/event_vendor/")
-async def fetch_event_vendors(event_id: str = None, consumer_id: str = None, db: Session = Depends(get_db)):
+async def fetch_event_vendors(event_id: str = None, producer_id: str = None, db: Session = Depends(get_db)):
     """
     Fetch event vendors with optional filters:
     - event_id: all vendors for a specific event
-    - consumer_id: all events for a specific consumer
+    - producer_id: all events for a specific producer
     - no parameters: all event vendor relationships
     """
     try:
@@ -224,8 +224,8 @@ async def fetch_event_vendors(event_id: str = None, consumer_id: str = None, db:
         
         if event_id:
             query = query.filter(EventVendor.event_id == event_id)
-        elif consumer_id:
-            query = query.filter(EventVendor.consumer_id == consumer_id)
+        elif producer_id:
+            query = query.filter(EventVendor.producer_id == producer_id)
         
         event_vendors = query.all()
         return [EventVendorModel.from_orm(event_vendor) for event_vendor in event_vendors]
@@ -440,7 +440,7 @@ async def create_event(event: EventModel, db: Session = Depends(get_db)):
 
 # for creating event vendor relationships
 @app.post("/api/v1/event_vendor/")
-async def create_event_vendor(event_id: str, consumer_id: str, db: Session = Depends(get_db)):
+async def create_event_vendor(event_id: str, producer_id: str, db: Session = Depends(get_db)):
     """
     Create a new event vendor relationship
     """
@@ -448,19 +448,19 @@ async def create_event_vendor(event_id: str, consumer_id: str, db: Session = Dep
         # Check if the relationship already exists
         existing = db.query(EventVendor).filter(
             EventVendor.event_id == event_id,
-            EventVendor.consumer_id == consumer_id
+            EventVendor.producer_id == producer_id
         ).first()
         
         if existing:
             raise HTTPException(
                 status_code=400, 
-                detail=f"Event vendor relationship between event '{event_id}' and consumer '{consumer_id}' already exists"
+                detail=f"Event vendor relationship between event '{event_id}' and producer '{producer_id}' already exists"
             )
         
         # Create new event vendor relationship
         new_event_vendor = EventVendor(
             event_id=event_id,
-            consumer_id=consumer_id
+            producer_id=producer_id
         )
         
         db.add(new_event_vendor)
@@ -471,7 +471,7 @@ async def create_event_vendor(event_id: str, consumer_id: str, db: Session = Dep
             "message": "Event vendor relationship created successfully",
             "id": str(new_event_vendor.id),
             "event_id": event_id,
-            "consumer_id": consumer_id
+            "producer_id": producer_id
         }
         
     except HTTPException:
@@ -704,21 +704,21 @@ async def delete_event(event_id: str, db: Session = Depends(get_db)):
         )
 
 @app.delete("/api/v1/event_vendor/")
-async def delete_event_vendor(event_id: str, consumer_id: str, db: Session = Depends(get_db)):
+async def delete_event_vendor(event_id: str, producer_id: str, db: Session = Depends(get_db)):
     """
-    Delete an event vendor relationship by event_id and consumer_id
+    Delete an event vendor relationship by event_id and producer_id
     """
     try:
         # Find the event vendor relationship to delete
         event_vendor = db.query(EventVendor).filter(
             EventVendor.event_id == event_id,
-            EventVendor.consumer_id == consumer_id
+            EventVendor.producer_id == producer_id
         ).first()
         
         if not event_vendor:
             raise HTTPException(
                 status_code=404, 
-                detail=f"No event vendor relationship found between event '{event_id}' and consumer '{consumer_id}'"
+                detail=f"No event vendor relationship found between event '{event_id}' and producer '{producer_id}'"
             )
         
         # Delete the relationship
@@ -728,7 +728,7 @@ async def delete_event_vendor(event_id: str, consumer_id: str, db: Session = Dep
         return {
             "message": "Event vendor relationship deleted successfully",
             "event_id": event_id,
-            "consumer_id": consumer_id,
+            "producer_id": producer_id,
             "deleted_id": str(event_vendor.id)
         }
         
