@@ -25,8 +25,9 @@ import {
   AlertDialogOverlay,
   Button,
   useDisclosure,
+  HStack,
 } from "@chakra-ui/react";
-import { DeleteIcon } from "@chakra-ui/icons";
+import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import { productService } from "../services/productService";
 
 interface Product {
@@ -45,6 +46,7 @@ interface UserProductsTableProps {
   loading?: boolean;
   error?: string;
   onProductDeleted?: () => void;
+  onProductModify?: (product: Product) => void;
   userId: string;
 }
 
@@ -53,6 +55,7 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
   loading = false,
   error,
   onProductDeleted,
+  onProductModify,
   userId,
 }) => {
   const toast = useToast();
@@ -263,14 +266,24 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
                 </Text>
               </Td>
               <Td>
-                <IconButton
-                  aria-label="Delete product"
-                  icon={<DeleteIcon />}
-                  size="sm"
-                  colorScheme="red"
-                  variant="ghost"
-                  onClick={() => handleDeleteClick(product.product_id)}
-                />
+                <HStack spacing={2}>
+                  <IconButton
+                    aria-label="Edit product"
+                    icon={<EditIcon />}
+                    size="sm"
+                    colorScheme="blue"
+                    variant="ghost"
+                    onClick={() => onProductModify?.(product)}
+                  />
+                  <IconButton
+                    aria-label="Delete product"
+                    icon={<DeleteIcon />}
+                    size="sm"
+                    colorScheme="red"
+                    variant="ghost"
+                    onClick={() => handleDeleteClick(product.product_id)}
+                  />
+                </HStack>
               </Td>
             </Tr>
           ))}

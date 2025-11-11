@@ -20,6 +20,7 @@ import {
 import { EmailIcon, PhoneIcon, StarIcon } from "@chakra-ui/icons";
 import ProducerSupplyBar from "./HomePageAssets/ProducerSupplyBar";
 import ProductEntryForm from "./HomePageAssets/ProductEntryForm";
+import ProductModifyForm from "./HomePageAssets/ProductModifyForm";
 import UserProductsTable from "../../components/UserProductsTable";
 import ProducerEventsList from "../../components/ProducerEventsList";
 import FarmerReviews from "../../components/FarmerReviews";
@@ -33,9 +34,11 @@ const Home: React.FC = () => {
   const { user } = useUser();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isModifyOpen, onOpen: onModifyOpen, onClose: onModifyClose } = useDisclosure();
   const username = localStorage.getItem("username") || "User";
   
   const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [averageRating, setAverageRating] = useState<number | null>(null);
@@ -109,6 +112,18 @@ const Home: React.FC = () => {
   // Function to refresh products (can be called from ProductEntryForm)
   const refreshProducts = () => {
     fetchUserProducts();
+  };
+
+  // Function to handle product modification
+  const handleProductModify = (product: Product) => {
+    setSelectedProduct(product);
+    onModifyOpen();
+  };
+
+  // Function to refresh products after modification
+  const handleProductModified = () => {
+    refreshProducts();
+    setSelectedProduct(null);
   };
 
   return (
@@ -226,6 +241,7 @@ const Home: React.FC = () => {
               loading={loading} 
               error={error}
               onProductDeleted={refreshProducts}
+              onProductModify={handleProductModify}
               userId={user?.id || ""}
             />
           </Box>
@@ -243,6 +259,12 @@ const Home: React.FC = () => {
         </Flex>
       </Flex>
       <ProductEntryForm isOpen={isOpen} onClose={onClose} onProductAdded={refreshProducts} />
+      <ProductModifyForm 
+        isOpen={isModifyOpen} 
+        onClose={onModifyClose} 
+        onProductModified={handleProductModified}
+        product={selectedProduct}
+      />
     </Flex>
   );
 };
