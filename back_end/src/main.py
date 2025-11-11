@@ -303,7 +303,8 @@ async def create_user(user: UserModel, db: Session = Depends(get_db)):
         "password": hashed_password,
         "email": user.email,
         "role": user.role,
-        "location": user.location
+        "location": user.location,
+        "phone_number": user.phone_number
     }
     if user.id is not None:
         user_data["id"] = UUID(str(user.id))

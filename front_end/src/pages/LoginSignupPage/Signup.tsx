@@ -23,7 +23,7 @@ import {
   Switch,
   FormLabel,
 } from "@chakra-ui/react";
-import { FaUserAlt, FaLock } from "react-icons/fa";
+import { FaUserAlt, FaLock, FaPhone } from "react-icons/fa";
 import backgroundImage from "../../assets/register.jpg";
 import logo from "../../assets/FarmZilla.png";
 import { createUser } from "./CreateUser";
@@ -38,6 +38,7 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [role, setRole] = useState("consumer"); // Default to consumer
+  const [phoneNumber, setPhoneNumber] = useState("");
   
   // Location-related state
   const [allowLocation, setAllowLocation] = useState(false);
@@ -167,7 +168,8 @@ const Signup = () => {
         username,
         password,
         role: role, // Use selected role
-        location: location // Include location data
+        location: location, // Include location data
+        phone_number: role === "producer" ? phoneNumber : null // Include phone number for producers only
       };
       
       await createUser(userData);
@@ -355,6 +357,24 @@ const Signup = () => {
                   </Button>
                 </ButtonGroup>
               </FormControl>
+
+              {/* Phone Number Field - Only for Producers */}
+              {role === "producer" && (
+                <FormControl>
+                  <InputGroup>
+                    <InputLeftElement
+                      pointerEvents="none"
+                      children={<FaPhone color="gray.300" />}
+                    />
+                    <Input
+                      type="tel"
+                      placeholder="Phone Number"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                    />
+                  </InputGroup>
+                </FormControl>
+              )}
 
               {/* Location Data Switch */}
               <FormControl>

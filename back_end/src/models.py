@@ -31,6 +31,7 @@ class User(Base):
     email = Column(String, nullable=False)
     role = Column(String, nullable=False)
     location = Column(String, nullable=True)  # Latitude,Longitude coordinates
+    phone_number = Column(String, nullable=True)  # Phone number (optional, mainly for producers)
 
 
 class UserModel(BaseModel):
@@ -40,6 +41,7 @@ class UserModel(BaseModel):
     email: str
     role: str
     location: Optional[str] = None  # Latitude,Longitude coordinates
+    phone_number: Optional[str] = None  # Phone number (optional, mainly for producers)
 
     class Config:
         orm_mode = True  # Enable ORM mode to work with SQLAlchemy objects
