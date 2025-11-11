@@ -110,49 +110,8 @@ users = pd.read_csv(os.path.join(project_root, 'data', 'users.csv'))
 products = pd.read_csv(os.path.join(project_root, 'data', 'products.csv'))
 producer_consumer_matches = pd.read_csv(os.path.join(project_root, 'data', 'producer_consumer_matches.csv'))
 ratings = pd.read_csv(os.path.join(project_root, 'data', 'ratings.csv'))
-
-# Create sample events data based on EventsMap.tsx
-events_data = [
-    {
-        'event_id': str(uuid.uuid4()),
-        'name': 'Farmers Market Downtown',
-        'date': '2025-11-01',
-        'time': '8:00 AM - 2:00 PM',
-        'location': 'Downtown Seattle',
-        'description': 'Weekly farmers market featuring local produce',
-        'coordinates': '47.6062, -122.3321'
-    },
-    {
-        'event_id': str(uuid.uuid4()),
-        'name': 'Agricultural Fair',
-        'date': '2025-11-15',
-        'time': '9:00 AM - 6:00 PM',
-        'location': 'Seattle Center',
-        'description': 'Annual agricultural fair and exhibition',
-        'coordinates': '47.6205, -122.3493'
-    },
-    {
-        'event_id': str(uuid.uuid4()),
-        'name': 'Farm to Table Event',
-        'date': '2025-12-01',
-        'time': '5:00 PM - 9:00 PM',
-        'location': 'Capitol Hill',
-        'description': 'Farm to table dining experience',
-        'coordinates': '47.5952, -122.3316'
-    }
-]
-
-# Create sample event vendor data
-event_vendor_data = [
-    {'event_id': events_data[0]['event_id'], 'consumer_id': 'consumer1'},
-    {'event_id': events_data[0]['event_id'], 'consumer_id': 'consumer2'},
-    {'event_id': events_data[1]['event_id'], 'consumer_id': 'consumer1'},
-    {'event_id': events_data[2]['event_id'], 'consumer_id': 'consumer3'},
-]
-
-# Convert to DataFrames
-events = pd.DataFrame(events_data)
-event_vendor = pd.DataFrame(event_vendor_data)
+events = pd.read_csv(os.path.join(project_root, 'data', 'events.csv'))
+event_vendor = pd.read_csv(os.path.join(project_root, 'data', 'event_vendor.csv'))
 
 # Defining queries to create tables
 users_table_creation_query = """CREATE TABLE IF NOT EXISTS users (
@@ -160,7 +119,8 @@ users_table_creation_query = """CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL
+    role VARCHAR(20) NOT NULL,
+    location VARCHAR(255)
     )
     """
 

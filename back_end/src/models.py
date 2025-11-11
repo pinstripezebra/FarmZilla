@@ -30,6 +30,7 @@ class User(Base):
     password = Column(String, nullable=False)
     email = Column(String, nullable=False)
     role = Column(String, nullable=False)
+    location = Column(String, nullable=True)  # Latitude,Longitude coordinates
 
 
 class UserModel(BaseModel):
@@ -38,6 +39,7 @@ class UserModel(BaseModel):
     password: str
     email: str
     role: str
+    location: Optional[str] = None  # Latitude,Longitude coordinates
 
     class Config:
         orm_mode = True  # Enable ORM mode to work with SQLAlchemy objects
