@@ -6,6 +6,7 @@ import {
 } from '@chakra-ui/react';
 import { eventService, type Event, type EventVendor } from '../services/eventService';
 import { useUser } from '../context/UserContex';
+import ProducerEventsList from './ProducerEventsList';
 
 interface EventsMapProps {
   height?: string;
@@ -17,7 +18,6 @@ const EventsMap: React.FC<EventsMapProps> = ({
   width = "100%" 
 }) => {
   const [events, setEvents] = useState<Event[]>([]);
-  const [userEvents, setUserEvents] = useState<Event[]>([]);
   const [userEventVendors, setUserEventVendors] = useState<EventVendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -45,12 +45,6 @@ const EventsMap: React.FC<EventsMapProps> = ({
         if (user?.id) {
           const userEventVendorsData = await eventService.getEventVendorsByProducerId(user.id);
           setUserEventVendors(userEventVendorsData);
-
-          // Filter events that the user is attending
-          const userEventsData = eventsData.filter(event => 
-            userEventVendorsData.some(vendor => vendor.event_id === event.event_id)
-          );
-          setUserEvents(userEventsData);
         }
       } catch (err: any) {
         console.error('Error fetching events:', err);
@@ -215,11 +209,6 @@ const EventsMap: React.FC<EventsMapProps> = ({
       // Refresh the data
       const updatedUserEventVendors = await eventService.getEventVendorsByProducerId(user.id);
       setUserEventVendors(updatedUserEventVendors);
-      
-      const updatedUserEvents = events.filter(event => 
-        updatedUserEventVendors.some(vendor => vendor.event_id === event.event_id)
-      );
-      setUserEvents(updatedUserEvents);
 
       toast({
         title: "Successfully Signed Up!",
@@ -261,11 +250,6 @@ const EventsMap: React.FC<EventsMapProps> = ({
       // Refresh the data
       const updatedUserEventVendors = await eventService.getEventVendorsByProducerId(user.id);
       setUserEventVendors(updatedUserEventVendors);
-      
-      const updatedUserEvents = events.filter(event => 
-        updatedUserEventVendors.some(vendor => vendor.event_id === event.event_id)
-      );
-      setUserEvents(updatedUserEvents);
 
       toast({
         title: "Successfully Withdrawn",
@@ -325,59 +309,16 @@ const EventsMap: React.FC<EventsMapProps> = ({
     return (
       <VStack spacing={6} align="stretch" height="100%" overflowY="auto">
         {/* Your Events Section */}
-        <Box>
-          <Heading size="md" color="teal.600" textAlign="center" mb={4}>
-            Your Events
-          </Heading>
-          
-          {userEvents.length === 0 ? (
-            <Alert status="info" borderRadius="md">
-              <AlertIcon />
-              You haven't signed up for any events yet
-            </Alert>
-          ) : (
-            <VStack spacing={3} align="stretch">
-              {userEvents.map((event) => (
-                <Card key={`user-${event.event_id}`} variant="outline" size="sm" bg="teal.50" borderColor="teal.200">
-                  <CardBody>
-                    <VStack align="start" spacing={2}>
-                      <HStack justify="space-between" width="100%">
-                        <Heading size="sm" color="teal.600">
-                          {event.name}
-                        </Heading>
-                        <Button
-                          size="sm"
-                          colorScheme="red"
-                          variant="solid"
-                          isLoading={withdrawLoading === event.event_id}
-                          loadingText="Withdrawing..."
-                          onClick={() => handleWithdrawFromEvent(event.event_id)}
-                        >
-                          Withdraw
-                        </Button>
-                      </HStack>
-                      <Text fontSize="sm" fontWeight="bold" color="gray.700">
-                        📅 {event.date}
-                      </Text>
-                      <Text fontSize="sm" color="gray.600">
-                        🕐 {event.time}
-                      </Text>
-                      <Text fontSize="sm" color="gray.600">
-                        📍 {event.location}
-                      </Text>
-                      <Text fontSize="xs" color="gray.500">
-                        Coordinates: {event.coordinates}
-                      </Text>
-                      <Text fontSize="sm">
-                        {event.description}
-                      </Text>
-                    </VStack>
-                  </CardBody>
-                </Card>
-              ))}
-            </VStack>
-          )}
-        </Box>
+        {user?.id && (
+          <ProducerEventsList 
+            producerId={user.id} 
+            showHeading={true}
+            compact={false}
+            showWithdraw={true}
+            onWithdraw={handleWithdrawFromEvent}
+            withdrawLoading={withdrawLoading}
+          />
+        )}
 
         {/* Upcoming Events Section */}
         <Box>

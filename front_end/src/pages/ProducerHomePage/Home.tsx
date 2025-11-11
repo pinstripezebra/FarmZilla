@@ -21,6 +21,7 @@ import { EmailIcon, PhoneIcon, StarIcon } from "@chakra-ui/icons";
 import ProducerSupplyBar from "./HomePageAssets/ProducerSupplyBar";
 import ProductEntryForm from "./HomePageAssets/ProductEntryForm";
 import UserProductsTable from "../../components/UserProductsTable";
+import ProducerEventsList from "../../components/ProducerEventsList";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../context/UserContex";
 import { productService, type Product } from "../../services/productService";
@@ -193,6 +194,18 @@ const Home: React.FC = () => {
               </Text>
             </CardBody>
           </Card>
+
+          {/* Upcoming Events Section */}
+          {user?.id && (
+            <Box mb={6}>
+              <ProducerEventsList 
+                producerId={user.id} 
+                maxEvents={3}
+                showHeading={true}
+                compact={true}
+              />
+            </Box>
+          )}
 
           <Flex justify="flex-start" align="center" mb={4}>
             <Heading color="teal.600" size="lg">My Products</Heading>
