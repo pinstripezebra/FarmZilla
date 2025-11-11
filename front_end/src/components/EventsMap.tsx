@@ -7,6 +7,7 @@ import {
 import { eventService, type Event, type EventVendor } from '../services/eventService';
 import { useUser } from '../context/UserContex';
 import ProducerEventsList from './ProducerEventsList';
+import CreateEvent from './CreateEvent';
 
 interface EventsMapProps {
   height?: string;
@@ -25,35 +26,36 @@ const EventsMap: React.FC<EventsMapProps> = ({
   const [withdrawLoading, setWithdrawLoading] = useState<string>("");
   const [eventToWithdraw, setEventToWithdraw] = useState<string>("");
   const [mapUrl, setMapUrl] = useState<string>("");
+  const [createEventOpen, setCreateEventOpen] = useState(false);
   
   const { user } = useUser();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = React.useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const fetchEventsAndUserData = async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const fetchEventsAndUserData = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        // Fetch all events
-        const eventsData = await eventService.getAllEvents();
-        setEvents(eventsData);
+      // Fetch all events
+      const eventsData = await eventService.getAllEvents();
+      setEvents(eventsData);
 
-        // If user is logged in, fetch their event vendor relationships
-        if (user?.id) {
-          const userEventVendorsData = await eventService.getEventVendorsByProducerId(user.id);
-          setUserEventVendors(userEventVendorsData);
-        }
-      } catch (err: any) {
-        console.error('Error fetching events:', err);
-        setError('Failed to load events. Please try again later.');
-      } finally {
-        setLoading(false);
+      // If user is logged in, fetch their event vendor relationships
+      if (user?.id) {
+        const userEventVendorsData = await eventService.getEventVendorsByProducerId(user.id);
+        setUserEventVendors(userEventVendorsData);
       }
-    };
+    } catch (err: any) {
+      console.error('Error fetching events:', err);
+      setError('Failed to load events. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchEventsAndUserData();
   }, [user?.id]);
 
@@ -322,9 +324,21 @@ const EventsMap: React.FC<EventsMapProps> = ({
 
         {/* Upcoming Events Section */}
         <Box>
-          <Heading size="md" color="teal.600" textAlign="center" mb={4}>
-            Upcoming Events
-          </Heading>
+          <HStack justify="space-between" align="center" mb={4}>
+            <Heading size="md" color="teal.600">
+              Upcoming Events
+            </Heading>
+            {user && (
+              <Button
+                size="md"
+                colorScheme="teal"
+                variant="solid"
+                onClick={() => setCreateEventOpen(true)}
+              >
+                Create Event
+              </Button>
+            )}
+          </HStack>
           
           {upcomingEvents.length === 0 ? (
             <Alert status="info" borderRadius="md">
@@ -455,6 +469,17 @@ const EventsMap: React.FC<EventsMapProps> = ({
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
+
+      {/* Create Event Modal */}
+      <CreateEvent
+        isOpen={createEventOpen}
+        onClose={() => setCreateEventOpen(false)}
+        onEventCreated={() => {
+          // Refresh events data when a new event is created
+          fetchEventsAndUserData();
+        }}
+        userId={user?.id}
+      />
     </>
   );
 };
