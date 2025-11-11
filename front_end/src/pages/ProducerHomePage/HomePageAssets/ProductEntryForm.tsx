@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton,
-  ModalBody, ModalFooter, Button, FormControl, FormLabel, Input, Textarea, useToast
+  ModalBody, ModalFooter, Button, FormControl, FormLabel, Input, Textarea, Select, useToast
 } from "@chakra-ui/react";
 import { useUser } from "../../../context/UserContex";
 import { productService } from "../../../services/productService";
@@ -18,6 +18,8 @@ const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose, on
   const [image, setImage] = useState<File | null>(null);
   const [product_name, setProductName] = useState("");
   const [description, setDescription] = useState("");
+  const [cost, setCost] = useState<string>("");
+  const [unit, setUnit] = useState<string>("each");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
   const { user } = useUser();
@@ -67,7 +69,9 @@ const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose, on
         product_name,
         description,
         image_url: imageUrl,
-        user_id: user.id // Include the user ID
+        user_id: user.id, // Include the user ID
+        cost: cost ? parseFloat(cost) : undefined,
+        unit: unit
       });
 
       toast({
@@ -81,6 +85,8 @@ const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose, on
       setImage(null);
       setProductName("");
       setDescription("");
+      setCost("");
+      setUnit("each");
       
       // Call the callback to refresh the products list
       if (onProductAdded) {
@@ -102,7 +108,7 @@ const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose, on
     }
   };
 
-  const isSubmitEnabled = image !== null && product_name.trim() !== "" && description.trim() !== "";
+  const isSubmitEnabled = image !== null && product_name.trim() !== "" && description.trim() !== "" && cost.trim() !== "";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -131,6 +137,27 @@ const ProductEntryForm: React.FC<ProductEntryFormProps> = ({ isOpen, onClose, on
                 onChange={e => setDescription(e.target.value)}
                 placeholder="Enter product description"
               />
+            </FormControl>
+            <FormControl mb={4}>
+              <FormLabel>Cost ($)</FormLabel>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={cost}
+                onChange={e => setCost(e.target.value)}
+                placeholder="Enter product cost (e.g., 2.99)"
+              />
+            </FormControl>
+            <FormControl mb={4}>
+              <FormLabel>Unit</FormLabel>
+              <Select
+                value={unit}
+                onChange={e => setUnit(e.target.value)}
+              >
+                <option value="each">Each</option>
+                <option value="lb">Per Pound</option>
+              </Select>
             </FormControl>
           </ModalBody>
           <ModalFooter>

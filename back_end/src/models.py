@@ -53,6 +53,8 @@ class Product(Base):
     description = Column(String, nullable=False)
     image_url = Column(String, nullable=True)  # URL to S3 image
     user_id = Column(pg.UUID(as_uuid=True), nullable=True)  # Link to user who created the product
+    cost = Column(Float, nullable=True)  # Product cost
+    unit = Column(String, nullable=True)  # Product unit (each or lb)
 
 class ProductModel(BaseModel):
     id: Optional[UUID] = None
@@ -61,6 +63,8 @@ class ProductModel(BaseModel):
     description: str
     image_url: Optional[str] = None  # URL to S3 image
     user_id: Optional[UUID] = None  # Link to user who created the product
+    cost: Optional[float] = None  # Product cost
+    unit: Optional[str] = None  # Product unit (each or lb)
     class Config:
         orm_mode = True
         from_attributes = True

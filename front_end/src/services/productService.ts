@@ -7,6 +7,8 @@ export interface Product {
   description: string;
   image_url?: string;
   user_id?: string;
+  cost?: number;
+  unit?: string;
 }
 
 export const productService = {
@@ -39,6 +41,8 @@ export const productService = {
     description: string;
     image_url?: string;
     user_id: string;
+    cost?: number;
+    unit?: string;
   }): Promise<Product> => {
     try {
       const response = await api.post('/v1/products/', productData);

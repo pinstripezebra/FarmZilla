@@ -130,7 +130,9 @@ products_table_creation_query = """CREATE TABLE IF NOT EXISTS products (
     product_name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     image_url TEXT,
-    user_id UUID
+    user_id UUID,
+    cost DECIMAL(10,2),
+    unit VARCHAR(20)
     )
     """
 

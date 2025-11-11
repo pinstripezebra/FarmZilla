@@ -36,6 +36,8 @@ interface Product {
   description: string;
   image_url?: string;
   user_id?: string;
+  cost?: number;
+  unit?: string;
 }
 
 interface UserProductsTableProps {
@@ -179,6 +181,7 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
             <Th>Image</Th>
             <Th>Product Name</Th>
             <Th>Description</Th>
+            <Th>Cost</Th>
             <Th>Product ID</Th>
             <Th>Actions</Th>
           </Tr>
@@ -242,6 +245,16 @@ const UserProductsTable: React.FC<UserProductsTableProps> = ({
                   color="gray.600"
                 >
                   {product.description}
+                </Text>
+              </Td>
+              <Td>
+                <Text fontSize="lg" fontWeight="semibold" color="green.600">
+                  {product.cost && product.unit 
+                    ? `$${product.cost.toFixed(2)} / ${product.unit}` 
+                    : product.cost 
+                    ? `$${product.cost.toFixed(2)}` 
+                    : 'N/A'
+                  }
                 </Text>
               </Td>
               <Td>
