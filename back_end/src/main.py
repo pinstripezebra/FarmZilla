@@ -304,7 +304,8 @@ async def create_user(user: UserModel, db: Session = Depends(get_db)):
         "email": user.email,
         "role": user.role,
         "location": user.location,
-        "phone_number": user.phone_number
+        "phone_number": user.phone_number,
+        "description": user.description
     }
     if user.id is not None:
         user_data["id"] = UUID(str(user.id))
@@ -529,7 +530,44 @@ async def create_rating(rating: RatingModel, db: Session = Depends(get_db)):
     
 
 #-------------------------------------------------#
-# ----------PART 3: HELPER METHODS----------------#
+# -----------PART 3: PUT METHODS------------------#
+#-------------------------------------------------#
+
+@app.put("/api/v1/user/{user_id}")
+async def update_user_profile(user_id: str, user_data: dict, db: Session = Depends(get_db)):
+    """
+    Update user profile information (email, phone_number, description)
+    """
+    try:
+        # Convert string to UUID
+        user_uuid = UUID(user_id)
+        
+        # Find the user
+        user = db.query(User).filter(User.id == user_uuid).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Update only allowed fields
+        allowed_fields = ['email', 'phone_number', 'description']
+        for field, value in user_data.items():
+            if field in allowed_fields and hasattr(user, field):
+                setattr(user, field, value)
+        
+        db.commit()
+        db.refresh(user)
+        
+        return UserModel.from_orm(user)
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating user profile: {str(e)}")
+
+#-------------------------------------------------#
+# ----------PART 4: HELPER METHODS----------------#
 #-------------------------------------------------#
 
 # helper function to authenticate user by hasing password

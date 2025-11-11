@@ -22,6 +22,7 @@ import {
   Text,
   Switch,
   FormLabel,
+  Textarea,
 } from "@chakra-ui/react";
 import { FaUserAlt, FaLock, FaPhone } from "react-icons/fa";
 import backgroundImage from "../../assets/register.jpg";
@@ -39,6 +40,7 @@ const Signup = () => {
   const [username, setUsername] = useState("");
   const [role, setRole] = useState("consumer"); // Default to consumer
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [description, setDescription] = useState("");
   
   // Location-related state
   const [allowLocation, setAllowLocation] = useState(false);
@@ -169,7 +171,8 @@ const Signup = () => {
         password,
         role: role, // Use selected role
         location: location, // Include location data
-        phone_number: role === "producer" ? phoneNumber : null // Include phone number for producers only
+        phone_number: role === "producer" ? phoneNumber : null, // Include phone number for producers only
+        description: role === "producer" ? description : null // Include description for producers only
       };
       
       await createUser(userData);
@@ -373,6 +376,19 @@ const Signup = () => {
                       onChange={(e) => setPhoneNumber(e.target.value)}
                     />
                   </InputGroup>
+                </FormControl>
+              )}
+
+              {/* Description Field - Only for Producers */}
+              {role === "producer" && (
+                <FormControl>
+                  <Textarea
+                    placeholder="Describe your farm and products (optional)"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    resize="vertical"
+                    rows={3}
+                  />
                 </FormControl>
               )}
 

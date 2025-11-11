@@ -30,6 +30,7 @@ interface Producer {
   email: string;
   role: string;
   phone_number?: string;
+  description?: string;
 }
 
 interface Product {

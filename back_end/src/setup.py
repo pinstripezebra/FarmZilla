@@ -121,7 +121,8 @@ users_table_creation_query = """CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL,
     location VARCHAR(255),
-    phone_number VARCHAR(20)
+    phone_number VARCHAR(20),
+    description TEXT
     )
     """
 

@@ -154,12 +154,14 @@ const Home: React.FC = () => {
                 username: user.username || username,
                 email: user.email || "No email provided",
                 role: user.role || "producer",
-                phone_number: user.phone_number
+                phone_number: user.phone_number,
+                description: user.description
               }}
               averageRating={averageRating}
               totalReviews={totalReviews}
               productsCount={products.length}
               showDescription={true}
+              showEditButton={true}
               mb={6}
             />
           )}

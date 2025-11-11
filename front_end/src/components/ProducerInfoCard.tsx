@@ -12,9 +12,12 @@ import {
   Icon,
   VStack,
   HStack,
+  Button,
+  useDisclosure,
 } from "@chakra-ui/react";
-import { EmailIcon, PhoneIcon, StarIcon } from "@chakra-ui/icons";
+import { EmailIcon, PhoneIcon, StarIcon, EditIcon } from "@chakra-ui/icons";
 import apiClient from "../services/apli-client";
+import EditProfileModal from "./EditProfileModal";
 
 interface Producer {
   id: string;
@@ -22,6 +25,7 @@ interface Producer {
   email: string;
   role: string;
   phone_number?: string;
+  description?: string;
 }
 
 interface ProducerInfoCardProps {
@@ -30,6 +34,7 @@ interface ProducerInfoCardProps {
   totalReviews?: number;
   productsCount?: number;
   showDescription?: boolean;
+  showEditButton?: boolean;
   mb?: number | string;
 }
 
@@ -39,9 +44,11 @@ const ProducerInfoCard: React.FC<ProducerInfoCardProps> = ({
   totalReviews = 0,
   productsCount = 0,
   showDescription = true,
+  showEditButton = false,
   mb = 6
 }) => {
   const [producerDetails, setProducerDetails] = useState<Producer>(producer);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Fetch full producer details including phone number
   const fetchProducerDetails = async () => {
@@ -65,6 +72,20 @@ const ProducerInfoCard: React.FC<ProducerInfoCardProps> = ({
       setProducerDetails(producer);
     }
   }, [producer.id, producer.phone_number]);
+
+  // Handle opening the edit modal - ensure we have complete producer details first
+  const handleOpenEditModal = async () => {
+    if (!producerDetails.phone_number || !producerDetails.description) {
+      // Fetch complete details if we don't have them
+      await fetchProducerDetails();
+    }
+    onOpen();
+  };
+
+  // Handle profile updates from the modal
+  const handleProfileUpdated = (updatedProducer: Producer) => {
+    setProducerDetails(updatedProducer);
+  };
 
   return (
     <Card mb={mb} shadow="lg" borderRadius="xl">
@@ -111,18 +132,39 @@ const ProducerInfoCard: React.FC<ProducerInfoCardProps> = ({
             <Badge colorScheme="blue" px={3} py={1} borderRadius="full">
               {productsCount} Products
             </Badge>
+            {showEditButton && (
+              <Button
+                size="sm"
+                colorScheme="teal"
+                variant="outline"
+                leftIcon={<EditIcon />}
+                onClick={handleOpenEditModal}
+              >
+                Edit Profile
+              </Button>
+            )}
           </VStack>
         </Flex>
       </CardHeader>
       {showDescription && (
         <CardBody pt={2}>
           <Text color="gray.600" fontSize="sm">
-            Welcome to {producerDetails.username}'s farm! We specialize in fresh, locally grown produce 
-            using sustainable farming practices. All our products are harvested at peak ripeness 
-            to ensure the best quality and flavor for our customers.
+            {producerDetails.description || 
+             `Welcome to ${producerDetails.username}'s farm! We specialize in fresh, locally grown produce 
+             using sustainable farming practices. All our products are harvested at peak ripeness 
+             to ensure the best quality and flavor for our customers.`
+            }
           </Text>
         </CardBody>
       )}
+      
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={isOpen}
+        onClose={onClose}
+        producer={producerDetails}
+        onProfileUpdated={handleProfileUpdated}
+      />
     </Card>
   );
 };
