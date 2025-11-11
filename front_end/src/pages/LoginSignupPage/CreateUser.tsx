@@ -5,6 +5,7 @@ interface CreateUserPayload {
   password: string;
   email: string;
   role: string;
+  location?: string; // Optional location field
 }
 
 export const createUser = ({
@@ -12,20 +13,30 @@ export const createUser = ({
   password,
   email,
   role = "consumer",
+  location,
 }: CreateUserPayload) => {
   console.log({
     username,
     password,
     email,
     role: role || "consumer",
+    location,
   });
 
   const validRoles = ["producer", "consumer"];
   const safeRole = validRoles.includes(role) ? role : "consumer";
-  return api.post("/v1/user/", {
+  
+  const payload: any = {
     username,
     password,
     email,
     role: safeRole,
-  });
+  };
+  
+  // Add location if provided
+  if (location) {
+    payload.location = location;
+  }
+  
+  return api.post("/v1/user/", payload);
 };

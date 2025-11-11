@@ -20,6 +20,8 @@ import {
   Link,
   Image,
   Text,
+  Switch,
+  FormLabel,
 } from "@chakra-ui/react";
 import { FaUserAlt, FaLock } from "react-icons/fa";
 import backgroundImage from "../../assets/register.jpg";
@@ -36,6 +38,11 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [role, setRole] = useState("consumer"); // Default to consumer
+  
+  // Location-related state
+  const [allowLocation, setAllowLocation] = useState(false);
+  const [location, setLocation] = useState<string | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const handleShowClick = () => setShowPassword(!showPassword);
   const handleShowConfirmClick = () =>
@@ -44,6 +51,77 @@ const Signup = () => {
   // Password validation function checks for one letter, one number, one special character, min 6 chars
   const isValidPassword = (pw: string) => {
     return /[A-Za-z]/.test(pw) && /\d/.test(pw) && /[^A-Za-z0-9]/.test(pw);
+  };
+
+  // Function to get user's current location
+  const getCurrentLocation = (): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by this browser"));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const locationString = `${latitude},${longitude}`;
+          resolve(locationString);
+        },
+        (error) => {
+          let errorMessage = "Unable to retrieve your location";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = "Location access denied by user";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "Location information is unavailable";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "Location request timed out";
+              break;
+          }
+          reject(new Error(errorMessage));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        }
+      );
+    });
+  };
+
+  // Handle location switch toggle
+  const handleLocationToggle = async (checked: boolean) => {
+    setAllowLocation(checked);
+    
+    if (checked) {
+      setLocationLoading(true);
+      try {
+        const userLocation = await getCurrentLocation();
+        setLocation(userLocation);
+        toast({
+          title: "Location captured successfully",
+          description: "Your location will be included when creating your account",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      } catch (error: any) {
+        toast({
+          title: "Location access failed",
+          description: error.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        setAllowLocation(false); // Reset switch if location fails
+      } finally {
+        setLocationLoading(false);
+      }
+    } else {
+      setLocation(null);
+    }
   };
 
   // Handle form submission
@@ -69,13 +147,30 @@ const Signup = () => {
       });
       return;
     }
+    
+    // Check if location is required and provided
+    if (!allowLocation || !location) {
+      toast({
+        title: "Location data required",
+        description: "Please enable location sharing to create your account. This helps us connect you with nearby users.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+    
     try {
-      await createUser({
+      // Create user data object with location
+      const userData = {
         email,
         username,
         password,
-        role: role // Use selected role
-      });
+        role: role, // Use selected role
+        location: location // Include location data
+      };
+      
+      await createUser(userData);
       toast({
         title: "Account created successfully!",
         description: "Navigating to login page...",
@@ -259,6 +354,37 @@ const Signup = () => {
                     Producer
                   </Button>
                 </ButtonGroup>
+              </FormControl>
+
+              {/* Location Data Switch */}
+              <FormControl>
+                <Flex justifyContent="space-between" alignItems="center" width="full">
+                  <Box>
+                    <FormLabel htmlFor="location-switch" mb="0" fontSize="sm">
+                      Allow location data <Text as="span" color="red.500">*</Text>
+                    </FormLabel>
+                    <Text fontSize="xs" color="gray.500">
+                      Required: Help us connect you with nearby {role === "producer" ? "consumers" : "producers"}
+                    </Text>
+                  </Box>
+                  <Switch
+                    id="location-switch"
+                    colorScheme="teal"
+                    isChecked={allowLocation}
+                    onChange={(e) => handleLocationToggle(e.target.checked)}
+                    isDisabled={locationLoading}
+                  />
+                </Flex>
+                {location && (
+                  <Text fontSize="xs" color="green.500" mt={1} textAlign="center">
+                    ✓ Location captured successfully
+                  </Text>
+                )}
+                {locationLoading && (
+                  <Text fontSize="xs" color="blue.500" mt={1} textAlign="center">
+                    📍 Getting your location...
+                  </Text>
+                )}
               </FormControl>
 
               {/* Signup Button */}
