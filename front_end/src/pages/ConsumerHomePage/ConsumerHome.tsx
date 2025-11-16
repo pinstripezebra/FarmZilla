@@ -1,13 +1,12 @@
 import React, { useState } from "react";
-import { Box, Flex, Text, Heading, Button } from "@chakra-ui/react";
-import { useNavigate } from "react-router-dom";
+import { Box, Flex, Text, Heading } from "@chakra-ui/react";
 import ConsumerSideBar from "./ConsumerAssets/ConsumerSideBar";
 import MarketplaceProductsTable from "../../components/MarketplaceProductsTable";
 import MarketPlaceFarmsTable from "../../components/MarketPlaceFarmsTable";
 import ConsumerFavoritesPage from "./ConsumerAssets/ConsumerFavoritesPage";
 import ViewFarmerProducts from "./ConsumerAssets/ViewFarmerProducts";
 import ConsumerMap from "./ConsumerAssets/ConsumerMap";
-import { useUser } from "../../context/UserContex";
+import TopBar from "../../components/TopBar";
 
 interface Producer {
   id: string;
@@ -18,18 +17,8 @@ interface Producer {
 }
 
 const ConsumerHome: React.FC = () => {
-  const navigate = useNavigate();
-  const { user, setUser } = useUser();
-  const username = user?.username || localStorage.getItem("username") || "User";
   const [currentView, setCurrentView] = useState<string>("maps");
   const [selectedProducer, setSelectedProducer] = useState<Producer | null>(null);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    setUser(null); // Clear user context
-    navigate("/Logout");
-  };
 
   const handleSidebarAction = (action: string) => {
     console.log("Sidebar action triggered:", action);
@@ -105,9 +94,7 @@ const ConsumerHome: React.FC = () => {
   return (
     <Flex height="100vh" direction="column">
       {/* Top Bar */}
-      <Flex bg="teal.600" color="white" align="center" height="60px" px={6} boxShadow="md">
-        <Text fontWeight="bold" fontSize="lg">{username}</Text>
-      </Flex>
+      <TopBar showLogoutButton={true} />
       
       <Flex flex="1" direction="row">
         {/* Sidebar */}
@@ -115,19 +102,14 @@ const ConsumerHome: React.FC = () => {
         
         {/* Main Content */}
         <Flex flex="1" direction="column" p={6}>
-          <Flex justify="space-between" align="center" mb={6}>
-            <Heading color="teal.600" size="lg">
-              {currentView === "view-farmer-products" && selectedProducer 
-                ? `${selectedProducer.username}'s Products`
-                : currentView === "maps" 
-                ? "Local Market Map"
-                : "Marketplace"
-              }
-            </Heading>
-            <Button colorScheme="teal" onClick={handleLogout}>
-              Logout
-            </Button>
-          </Flex>
+          <Heading color="teal.600" size="lg" mb={6}>
+            {currentView === "view-farmer-products" && selectedProducer 
+              ? `${selectedProducer.username}'s Products`
+              : currentView === "maps" 
+              ? "Local Market Map"
+              : "Marketplace"
+            }
+          </Heading>
           
           {/* Content Area */}
           <Box flex="1" overflowY="auto">

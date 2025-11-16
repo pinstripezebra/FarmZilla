@@ -4,7 +4,6 @@ import {
   Heading, 
   Button, 
   Flex, 
-  Text, 
   Box, 
   useToast, 
   useDisclosure
@@ -16,18 +15,16 @@ import UserProductsTable from "../../components/UserProductsTable";
 import ProducerEventsList from "../../components/ProducerEventsList";
 import FarmerReviews from "../../components/FarmerReviews";
 import ProducerInfoCard from "../../components/ProducerInfoCard";
-import { useNavigate } from "react-router-dom";
+import TopBar from "../../components/TopBar";
 import { useUser } from "../../context/UserContex";
 import { productService, type Product } from "../../services/productService";
 import apiClient from "../../services/apli-client";
 
 const Home: React.FC = () => {
-  const navigate = useNavigate();
   const { user } = useUser();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isModifyOpen, onOpen: onModifyOpen, onClose: onModifyClose } = useDisclosure();
-  const username = localStorage.getItem("username") || "User";
   
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -95,12 +92,6 @@ const Home: React.FC = () => {
     }
   }, [user?.id]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    navigate("/Logout");
-  };
-
   // Function to refresh products (can be called from ProductEntryForm)
   const refreshProducts = () => {
     fetchUserProducts();
@@ -121,26 +112,7 @@ const Home: React.FC = () => {
   return (
     <Flex height="100vh" direction="column">
       {/* Top Bar */}
-      <Flex bg="teal.600" color="white" align="center" justify="space-between" height="60px" px={6} boxShadow="md">
-        <Text fontWeight="bold" fontSize="lg">{username}</Text>
-        <Button 
-          bg="white" 
-          color="teal.600" 
-          variant="solid" 
-          onClick={handleLogout}
-          _hover={{
-            bg: "gray.100",
-            transform: "translateY(-1px)",
-            boxShadow: "md"
-          }}
-          _active={{
-            bg: "gray.200",
-            transform: "translateY(0)"
-          }}
-        >
-          Logout
-        </Button>
-      </Flex>
+      <TopBar showLogoutButton={true} />
       <Flex flex="1" direction="row">
         {/* Sidebar */}
         <ProducerSupplyBar activePage="products" />
@@ -151,7 +123,7 @@ const Home: React.FC = () => {
             <ProducerInfoCard 
               producer={{
                 id: user.id,
-                username: user.username || username,
+                username: user.username || localStorage.getItem("username") || "User",
                 email: user.email || "No email provided",
                 role: user.role || "producer",
                 phone_number: user.phone_number,
