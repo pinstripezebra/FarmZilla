@@ -39,6 +39,15 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered, cu
         <Text fontWeight="bold" fontSize="md" color="teal.700">Browse</Text>
         <Button 
           colorScheme="teal" 
+          variant={currentView === "maps" ? "solid" : "outline"}
+          onClick={() => onActionTriggered?.("maps")}
+          bg={currentView === "maps" ? "teal.600" : undefined}
+          color={currentView === "maps" ? "white" : undefined}
+        >
+          🗺️ Maps
+        </Button>
+        <Button 
+          colorScheme="teal" 
           variant={currentView === "browse-products" ? "solid" : "outline"}
           onClick={handleBrowseProducts}
           bg={currentView === "browse-products" ? "teal.600" : undefined}

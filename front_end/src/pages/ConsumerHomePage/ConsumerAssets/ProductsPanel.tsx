@@ -1,0 +1,247 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Box, VStack, Card, CardBody, Heading, Text, Button, 
+  HStack, Badge, Spinner, Alert, AlertIcon, Image, 
+  Divider
+} from '@chakra-ui/react';
+import { StarIcon } from '@chakra-ui/icons';
+import { productService, type Product } from '../../../services/productService';
+import { ratingService } from '../../../services/ratingService';
+
+interface ProductWithProducer extends Product {
+  producer_name?: string;
+  producer_rating?: number;
+  total_reviews?: number;
+}
+
+interface ProductsPanelProps {
+  searchQuery?: string;
+  onProductSelect?: (product: ProductWithProducer) => void;
+  height?: string;
+}
+
+const ProductsPanel: React.FC<ProductsPanelProps> = ({ 
+  searchQuery = "", 
+  onProductSelect,
+  height = "100%" 
+}) => {
+  const [products, setProducts] = useState<ProductWithProducer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
+
+
+  const fetchProductsAndRatings = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      // Fetch all products
+      const productsData = await productService.getAllProducts();
+      
+      // Get unique producer IDs
+      const producerIds = [...new Set(productsData.map((p: Product) => p.user_id).filter(Boolean) as string[])];
+      
+      // Fetch ratings for all producers
+      const ratingsMap = await ratingService.getProducersRatingSummary(producerIds);
+      
+      // Enhance products with producer information and ratings
+      const enhancedProducts: ProductWithProducer[] = productsData.map((product: Product) => {
+        const rating = ratingsMap.get(product.user_id || "");
+        return {
+          ...product,
+          producer_rating: rating?.average_rating || 0,
+          total_reviews: rating?.total_reviews || 0,
+          // We'll need to fetch producer names separately or join in the API
+          producer_name: `Producer ${product.user_id?.slice(-4) || 'Unknown'}`
+        };
+      });
+
+      // Sort by producer rating (highest first), then by product name
+      const sortedProducts = enhancedProducts.sort((a, b) => {
+        if (b.producer_rating !== a.producer_rating) {
+          return (b.producer_rating || 0) - (a.producer_rating || 0);
+        }
+        return (a.product_name || "").localeCompare(b.product_name || "");
+      });
+
+      setProducts(sortedProducts);
+    } catch (err: any) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProductsAndRatings();
+  }, []);
+
+  // Filter products based on search query
+  const filteredProducts = products.filter(product => 
+    product.product_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.producer_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const renderRatingStars = (rating: number, totalReviews: number) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+
+    for (let i = 0; i < 5; i++) {
+      if (i < fullStars) {
+        stars.push(<StarIcon key={i} color="yellow.400" />);
+      } else if (i === fullStars && hasHalfStar) {
+        stars.push(<StarIcon key={i} color="yellow.400" />); // Could add half-star logic here
+      } else {
+        stars.push(<StarIcon key={i} color="gray.300" />);
+      }
+    }
+
+    return (
+      <HStack spacing={1}>
+        <HStack spacing={0.5}>
+          {stars}
+        </HStack>
+        <Text fontSize="sm" color="gray.600">
+          ({rating.toFixed(1)})
+        </Text>
+        <Text fontSize="xs" color="gray.500">
+          {totalReviews} review{totalReviews !== 1 ? 's' : ''}
+        </Text>
+      </HStack>
+    );
+  };
+
+  if (loading) {
+    return (
+      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height={height} p={4}>
+        <Spinner size="lg" color="teal.500" />
+        <Text mt={3} color="gray.600">Loading products...</Text>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box height={height} p={4}>
+        <Alert status="error" borderRadius="md">
+          <AlertIcon />
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
+
+  return (
+    <Box height={height} p={4} overflowY="auto">
+      <VStack spacing={4} align="stretch">
+        <Box>
+          <Heading size="md" color="teal.600" mb={2}>
+            Nearby Products
+          </Heading>
+          <Text fontSize="sm" color="gray.600">
+            {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+            {searchQuery && ` for "${searchQuery}"`}
+          </Text>
+        </Box>
+
+        <Divider />
+
+        {filteredProducts.length === 0 ? (
+          <Box textAlign="center" py={8}>
+            <Text color="gray.500" fontSize="lg">
+              {searchQuery 
+                ? `No products found matching "${searchQuery}"`
+                : "No products available at this time"
+              }
+            </Text>
+          </Box>
+        ) : (
+          <VStack spacing={3} align="stretch">
+            {filteredProducts.map((product) => (
+              <Card 
+                key={product.id} 
+                variant="outline" 
+                size="sm" 
+                _hover={{ shadow: "md", borderColor: "teal.300" }}
+                cursor="pointer"
+                onClick={() => onProductSelect?.(product)}
+              >
+                <CardBody>
+                  <VStack align="stretch" spacing={3}>
+                    {/* Product Image */}
+                    {product.image_url && (
+                      <Box>
+                        <Image
+                          src={product.image_url}
+                          alt={product.product_name}
+                          height="120px"
+                          width="100%"
+                          objectFit="cover"
+                          borderRadius="md"
+                          fallbackSrc="https://via.placeholder.com/300x120?text=No+Image"
+                        />
+                      </Box>
+                    )}
+
+                    {/* Product Info */}
+                    <VStack align="stretch" spacing={2}>
+                      <Heading size="sm" color="teal.600">
+                        {product.product_name}
+                      </Heading>
+                      
+                      <Text fontSize="sm" color="gray.700" noOfLines={2}>
+                        {product.description}
+                      </Text>
+
+                      {/* Price */}
+                      {product.cost && (
+                        <HStack>
+                          <Badge colorScheme="green" fontSize="sm">
+                            ${product.cost}{product.unit && `/${product.unit}`}
+                          </Badge>
+                        </HStack>
+                      )}
+
+                      <Divider />
+
+                      {/* Producer Info */}
+                      <VStack align="stretch" spacing={1}>
+                        <Text fontSize="sm" fontWeight="semibold" color="gray.700">
+                          From: {product.producer_name}
+                        </Text>
+                        
+                        {product.total_reviews && product.total_reviews > 0 ? (
+                          renderRatingStars(product.producer_rating || 0, product.total_reviews)
+                        ) : (
+                          <Text fontSize="xs" color="gray.500">No reviews yet</Text>
+                        )}
+                      </VStack>
+
+                      {/* Action Button */}
+                      <Button 
+                        size="sm" 
+                        colorScheme="teal" 
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onProductSelect?.(product);
+                        }}
+                      >
+                        View Details
+                      </Button>
+                    </VStack>
+                  </VStack>
+                </CardBody>
+              </Card>
+            ))}
+          </VStack>
+        )}
+      </VStack>
+    </Box>
+  );
+};
+
+export default ProductsPanel;

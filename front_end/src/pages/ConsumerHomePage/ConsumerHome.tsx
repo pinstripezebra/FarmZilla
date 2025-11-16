@@ -6,6 +6,7 @@ import MarketplaceProductsTable from "../../components/MarketplaceProductsTable"
 import MarketPlaceFarmsTable from "../../components/MarketPlaceFarmsTable";
 import ConsumerFavoritesPage from "./ConsumerAssets/ConsumerFavoritesPage";
 import ViewFarmerProducts from "./ConsumerAssets/ViewFarmerProducts";
+import ConsumerMap from "./ConsumerAssets/ConsumerMap";
 import { useUser } from "../../context/UserContex";
 
 interface Producer {
@@ -20,7 +21,7 @@ const ConsumerHome: React.FC = () => {
   const navigate = useNavigate();
   const { user, setUser } = useUser();
   const username = user?.username || localStorage.getItem("username") || "User";
-  const [currentView, setCurrentView] = useState<string>("welcome");
+  const [currentView, setCurrentView] = useState<string>("maps");
   const [selectedProducer, setSelectedProducer] = useState<Producer | null>(null);
 
   const handleLogout = () => {
@@ -48,6 +49,8 @@ const ConsumerHome: React.FC = () => {
 
   const renderContent = () => {
     switch (currentView) {
+      case "maps":
+        return <ConsumerMap height="calc(100vh - 200px)" />;
       case "browse-products":
         return <MarketplaceProductsTable onViewProducer={handleViewFarmerProducts} />;
       case "browse-farmers":
@@ -116,6 +119,8 @@ const ConsumerHome: React.FC = () => {
             <Heading color="teal.600" size="lg">
               {currentView === "view-farmer-products" && selectedProducer 
                 ? `${selectedProducer.username}'s Products`
+                : currentView === "maps" 
+                ? "Local Market Map"
                 : "Marketplace"
               }
             </Heading>
