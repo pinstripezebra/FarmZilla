@@ -114,10 +114,9 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
       }
     }
 
-    // Create markers data
+    // Create markers data (without selection state - handled dynamically)
     const markersData = coordinates.map(coord => {
       const isUserEvent = userEventVendors.some(vendor => vendor.event_id === coord.event.event_id);
-      const isSelected = selectedEventId === coord.event.event_id;
       return {
         lat: coord.lat,
         lng: coord.lng,
@@ -126,7 +125,7 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
         time: coord.event.time,
         location: coord.event.location,
         isUserEvent,
-        isSelected,
+        isSelected: false, // Always start unselected - selection handled dynamically
         eventId: coord.event.event_id,
         type: 'event'
       };
@@ -186,21 +185,21 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
             if (marker.type === 'user') {
                 // User location marker
                 icon = L.divIcon({
-                    html: '<div style="background-color: #e53e3e; color: white; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.3); font-size: 18px;">📍</div>',
+                    html: '<div style="background-color: #38a169; color: white; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.3); font-size: 18px;">📍</div>',
                     className: 'user-marker',
                     iconSize: [35, 35],
                     iconAnchor: [17.5, 17.5]
                 });
                 
                 popupContent = '<div class="custom-popup">' +
-                    '<div style="color: #e53e3e; font-weight: bold;">' + marker.name + '</div>' +
+                    '<div style="color: #38a169; font-weight: bold;">' + marker.name + '</div>' +
                     '<div>📍 ' + marker.location + '</div>' +
                     '</div>';
             } else {
-                // Event marker - different styling for selected vs unselected
-                var markerColor = marker.isSelected ? '#e53e3e' : (marker.isUserEvent ? '#38a169' : '#3182ce');
-                var markerSize = marker.isSelected ? 35 : 30;
-                var borderWidth = marker.isSelected ? 4 : 3;
+                // Event marker - start with unselected styling (selection handled dynamically)
+                var markerColor = marker.isUserEvent ? '#38a169' : '#3182ce';
+                var markerSize = 30;
+                var borderWidth = 3;
                 
                 icon = L.divIcon({
                     html: '<div style="background-color: ' + markerColor + '; color: white; border-radius: 50%; width: ' + markerSize + 'px; height: ' + markerSize + 'px; display: flex; align-items: center; justify-content: center; border: ' + borderWidth + 'px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.3); font-size: 16px; cursor: pointer;">🎪</div>',
@@ -226,10 +225,12 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
             // Add click handler for event selection
             if (marker.type === 'event') {
                 mapMarker.on('click', function() {
+                    // Check current selection state from the marker's current data
+                    var currentlySelected = mapMarker.originalData ? mapMarker.originalData.isSelected : false;
                     window.parent.postMessage({
                         type: 'EVENT_SELECT',
                         eventId: marker.eventId,
-                        isSelected: marker.isSelected
+                        isSelected: currentlySelected
                     }, '*');
                 });
             }
@@ -242,6 +243,47 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
             mapMarker.on('mouseout', function() {
                 this.closePopup();
             });
+            
+            // Store marker reference for dynamic updates
+            if (marker.type === 'event') {
+                mapMarker.eventId = marker.eventId;
+                mapMarker.originalData = marker;
+            }
+        });
+        
+        // Store all event markers for dynamic updates
+        window.eventMarkers = markers.filter(m => m.type === 'event').map((marker, index) => {
+            return map._layers[Object.keys(map._layers)[index + 1]]; // Get the actual Leaflet marker
+        }).filter(Boolean);
+        
+        // Listen for selection updates from parent
+        window.addEventListener('message', function(event) {
+            if (event.data?.type === 'UPDATE_SELECTION') {
+                var selectedEventId = event.data.selectedEventId;
+                
+                // Update all event markers
+                Object.values(map._layers).forEach(function(layer) {
+                    if (layer.eventId && layer.originalData) {
+                        var marker = layer.originalData;
+                        var isSelected = selectedEventId === marker.eventId;
+                        
+                        // Update marker styling
+                        var markerColor = isSelected ? '#e53e3e' : (marker.isUserEvent ? '#38a169' : '#3182ce');
+                        var markerSize = isSelected ? 35 : 30;
+                        var borderWidth = isSelected ? 4 : 3;
+                        
+                        var newIcon = L.divIcon({
+                            html: '<div style="background-color: ' + markerColor + '; color: white; border-radius: 50%; width: ' + markerSize + 'px; height: ' + markerSize + 'px; display: flex; align-items: center; justify-content: center; border: ' + borderWidth + 'px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.3); font-size: 16px; cursor: pointer;">🎪</div>',
+                            className: 'event-marker',
+                            iconSize: [markerSize, markerSize],
+                            iconAnchor: [markerSize/2, markerSize/2]
+                        });
+                        
+                        layer.setIcon(newIcon);
+                        layer.originalData.isSelected = isSelected;
+                    }
+                });
+            }
         });
     </script>
 </body>
@@ -252,11 +294,24 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
     return dataUri;
   };
 
-  // Update map URL when events or user location changes
+  // Update map URL when events or user location changes (but not when selection changes)
   useEffect(() => {
     const newMapUrl = generateMapUrl();
     setMapUrl(newMapUrl);
-  }, [events, userEventVendors, userLocation, selectedEventId]);
+    
+    // After map regenerates, reapply current selection if any
+    if (selectedEventId) {
+      setTimeout(() => {
+        const iframe = document.querySelector('iframe[title="Events Map"]') as HTMLIFrameElement;
+        if (iframe?.contentWindow) {
+          iframe.contentWindow.postMessage({
+            type: 'UPDATE_SELECTION',
+            selectedEventId: selectedEventId
+          }, '*');
+        }
+      }, 200); // Longer delay for map regeneration
+    }
+  }, [events, userEventVendors, userLocation]);
 
   // Add message listener for event selection from iframe
   useEffect(() => {
@@ -271,6 +326,23 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [onEventSelect]);
+
+  // Send selection updates to iframe without regenerating the entire map
+  useEffect(() => {
+    const sendSelectionUpdate = () => {
+      const iframe = document.querySelector('iframe[title="Events Map"]') as HTMLIFrameElement;
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'UPDATE_SELECTION',
+          selectedEventId: selectedEventId
+        }, '*');
+      }
+    };
+
+    // Add a small delay to ensure iframe is loaded
+    const timer = setTimeout(sendSelectionUpdate, 100);
+    return () => clearTimeout(timer);
+  }, [selectedEventId]);
 
   return (
     <Box height={height} position="relative">
