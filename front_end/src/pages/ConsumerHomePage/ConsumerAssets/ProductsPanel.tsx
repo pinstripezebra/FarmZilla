@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, VStack, Card, CardBody, Heading, Text, Button, 
   HStack, Badge, Spinner, Alert, AlertIcon, Image, 
-  Divider
+  Divider, IconButton, Collapse, useDisclosure
 } from '@chakra-ui/react';
-import { StarIcon } from '@chakra-ui/icons';
+import { StarIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
 import { productService, type Product } from '../../../services/productService';
 import { ratingService } from '../../../services/ratingService';
 
@@ -28,6 +28,7 @@ const ProductsPanel: React.FC<ProductsPanelProps> = ({
   const [products, setProducts] = useState<ProductWithProducer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  const { isOpen: isExpanded, onToggle } = useDisclosure({ defaultIsOpen: true });
 
 
   const fetchProductsAndRatings = async () => {
@@ -135,32 +136,73 @@ const ProductsPanel: React.FC<ProductsPanelProps> = ({
   }
 
   return (
-    <Box height={height} p={4} overflowY="auto">
-      <VStack spacing={4} align="stretch">
-        <Box>
-          <Heading size="md" color="teal.600" mb={2}>
-            Nearby Products
+    <Box 
+      height={height} 
+      display="flex" 
+      flexDirection="column"
+      bg="white"
+      borderRadius="md"
+      boxShadow="sm"
+      border="1px solid"
+      borderColor="gray.200"
+      minWidth={isExpanded ? "400px" : "60px"}
+      maxWidth={isExpanded ? "500px" : "60px"}
+      transition="all 0.3s ease"
+    >
+      {/* Header with toggle button */}
+      <HStack 
+        justify="space-between" 
+        align="center" 
+        p={3}
+        borderBottom="1px solid"
+        borderColor="gray.200"
+        bg="gray.50"
+        borderRadius="md md 0 0"
+      >
+        <Collapse in={isExpanded} animateOpacity>
+          <Heading size="md" color="teal.600">
+            Products
           </Heading>
-          <Text fontSize="sm" color="gray.600">
-            {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
-            {searchQuery && ` for "${searchQuery}"`}
-          </Text>
-        </Box>
+        </Collapse>
+        <IconButton
+          aria-label={isExpanded ? "Collapse panel" : "Expand panel"}
+          icon={isExpanded ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+          size="sm"
+          variant="ghost"
+          onClick={onToggle}
+        />
+      </HStack>
 
-        <Divider />
+      {/* Collapsible content */}
+      <Collapse in={isExpanded} animateOpacity>
+        <Box 
+          flex="1" 
+          overflowY="auto" 
+          p={4}
+          maxHeight="calc(100% - 60px)"
+        >
+          <VStack spacing={4} align="stretch">
+            <Box>
+              <Text fontSize="sm" color="gray.600">
+                {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+                {searchQuery && ` for "${searchQuery}"`}
+              </Text>
+            </Box>
 
-        {filteredProducts.length === 0 ? (
-          <Box textAlign="center" py={8}>
-            <Text color="gray.500" fontSize="lg">
-              {searchQuery 
-                ? `No products found matching "${searchQuery}"`
-                : "No products available at this time"
-              }
-            </Text>
-          </Box>
-        ) : (
-          <VStack spacing={3} align="stretch">
-            {filteredProducts.map((product) => (
+            <Divider />
+
+            {filteredProducts.length === 0 ? (
+              <Box textAlign="center" py={8}>
+                <Text color="gray.500" fontSize="lg">
+                  {searchQuery 
+                    ? `No products found matching "${searchQuery}"`
+                    : "No products available at this time"
+                  }
+                </Text>
+              </Box>
+            ) : (
+              <VStack spacing={3} align="stretch" pb={4}>
+                {filteredProducts.map((product) => (
               <Card 
                 key={product.id} 
                 variant="outline" 
@@ -236,10 +278,12 @@ const ProductsPanel: React.FC<ProductsPanelProps> = ({
                   </VStack>
                 </CardBody>
               </Card>
-            ))}
+                ))}
+              </VStack>
+            )}
           </VStack>
-        )}
-      </VStack>
+        </Box>
+      </Collapse>
     </Box>
   );
 };

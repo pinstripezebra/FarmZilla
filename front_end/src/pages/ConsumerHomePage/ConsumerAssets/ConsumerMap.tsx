@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Box, Grid, GridItem, Input, InputGroup, InputLeftElement, 
+  Box, Input, InputGroup, InputLeftElement, 
   VStack, Heading
 } from '@chakra-ui/react';
 import { SearchIcon } from '@chakra-ui/icons';
@@ -92,54 +92,43 @@ const ConsumerMap: React.FC<ConsumerMapProps> = ({
           </InputGroup>
         </Box>
 
-        {/* Main Content Grid */}
-        <Grid templateColumns="1fr 1fr" gap={6} flex="1" height="0">
-          {/* Left side - Events Map */}
-          <GridItem>
-            <Box 
-              height="100%" 
-              border="1px solid" 
-              borderColor="gray.200" 
-              borderRadius="md" 
-              overflow="hidden"
-              boxShadow="sm"
-            >
-              {loading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" height="100%">
-                  Loading map...
-                </Box>
-              ) : error ? (
-                <Box display="flex" alignItems="center" justifyContent="center" height="100%" color="red.500">
-                  {error}
-                </Box>
-              ) : (
-                <EventsMapDisplay 
-                  events={filteredEvents} 
-                  userEventVendors={userEventVendors}
-                  height="100%" 
-                />
-              )}
-            </Box>
-          </GridItem>
-
-          {/* Right side - Products Panel */}
-          <GridItem>
-            <Box 
-              height="100%" 
-              border="1px solid" 
-              borderColor="gray.200" 
-              borderRadius="md" 
-              overflow="hidden"
-              boxShadow="sm"
-            >
-              <ProductsPanel 
-                searchQuery={searchQuery}
-                onProductSelect={handleProductSelect}
-                height="100%"
+        {/* Main Content - Flexible Layout */}
+        <Box display="flex" gap={4} flex="1" height="0">
+          {/* Left side - Events Map (flexible width) */}
+          <Box 
+            flex="1"
+            height="100%" 
+            border="1px solid" 
+            borderColor="gray.200" 
+            borderRadius="md" 
+            overflow="hidden"
+            boxShadow="sm"
+            minWidth="300px"
+          >
+            {loading ? (
+              <Box display="flex" alignItems="center" justifyContent="center" height="100%">
+                Loading map...
+              </Box>
+            ) : error ? (
+              <Box display="flex" alignItems="center" justifyContent="center" height="100%" color="red.500">
+                {error}
+              </Box>
+            ) : (
+              <EventsMapDisplay 
+                events={filteredEvents} 
+                userEventVendors={userEventVendors}
+                height="100%" 
               />
-            </Box>
-          </GridItem>
-        </Grid>
+            )}
+          </Box>
+
+          {/* Right side - Collapsible Products Panel */}
+          <ProductsPanel 
+            searchQuery={searchQuery}
+            onProductSelect={handleProductSelect}
+            height="100%"
+          />
+        </Box>
       </VStack>
     </Box>
   );
