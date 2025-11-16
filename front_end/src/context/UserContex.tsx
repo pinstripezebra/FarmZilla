@@ -1,10 +1,12 @@
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useContext, useEffect } from "react";
+import { userService } from "../services/userService";
 
 export interface UserData {
   id: string;
   username: string;
   email: string;
   role: string;
+  location?: string;
   phone_number?: string;
   description?: string;
   // add other fields as needed
@@ -14,33 +16,48 @@ interface UserContextType {
   user: UserData | null;
   setUser: (user: UserData | null) => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize from localStorage if available
-  const initializeUser = (): UserData | null => {
-    try {
-      const userId = localStorage.getItem("userId");
-      const username = localStorage.getItem("username");
-      const userRole = localStorage.getItem("userRole");
-      
-      if (userId && username && userRole) {
-        return {
-          id: userId,
-          username: username,
-          email: "", // We'll need to fetch this if needed
-          role: userRole
-        };
-      }
-    } catch (error) {
-      console.error("Error initializing user from localStorage:", error);
-    }
-    return null;
-  };
+  const [user, setUserState] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [user, setUserState] = useState<UserData | null>(initializeUser);
+  // Fetch full user data on initialization
+  useEffect(() => {
+    const initializeUser = async () => {
+      try {
+        const userId = localStorage.getItem("userId");
+        const username = localStorage.getItem("username");
+        const userRole = localStorage.getItem("userRole");
+        
+        if (userId && username && userRole) {
+          try {
+            // Try to fetch full user data from server
+            const fullUserData = await userService.getUserById(userId);
+            setUserState(fullUserData);
+          } catch (error) {
+            console.error("Error fetching full user data:", error);
+            // Fallback to localStorage data
+            setUserState({
+              id: userId,
+              username: username,
+              email: "", 
+              role: userRole
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error initializing user:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeUser();
+  }, []);
 
   const setUser = (newUser: UserData | null) => {
     setUserState(newUser);
@@ -64,7 +81,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!user;
 
   return (
-    <UserContext.Provider value={{ user, setUser, isAuthenticated }}>
+    <UserContext.Provider value={{ user, setUser, isAuthenticated, isLoading }}>
       {children}
     </UserContext.Provider>
   );

@@ -7,6 +7,7 @@ import { SearchIcon } from '@chakra-ui/icons';
 import EventsMapDisplay from '../../../components/EventsMapDisplay';
 import ProductsPanel from './ProductsPanel';
 import { eventService, type Event, type EventVendor } from '../../../services/eventService';
+import { useUser } from '../../../context/UserContex';
 
 interface ConsumerMapProps {
   height?: string;
@@ -22,6 +23,8 @@ const ConsumerMap: React.FC<ConsumerMapProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  
+  const { user } = useUser();
   
   const fetchEvents = async () => {
     try {
@@ -117,6 +120,8 @@ const ConsumerMap: React.FC<ConsumerMapProps> = ({
               <EventsMapDisplay 
                 events={filteredEvents} 
                 userEventVendors={userEventVendors}
+                userLocation={user?.location}
+                defaultZoom={0.01}
                 height="100%" 
               />
             )}

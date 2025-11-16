@@ -6,20 +6,47 @@ interface EventsMapDisplayProps {
   events: Event[];
   userEventVendors: EventVendor[];
   height?: string;
+  userLocation?: string; // User's location in "lat,lng" format
+  defaultZoom?: number; // Default zoom level when no events
 }
 
 const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({ 
   events, 
   userEventVendors,
-  height = "100%" 
+  height = "100%",
+  userLocation,
+  defaultZoom = 0.05 
 }) => {
   const [mapUrl, setMapUrl] = useState<string>("");
 
   // Generate dynamic map URL with event markers using Leaflet
   const generateMapUrl = () => {
+    // Helper function to get default location
+    const getDefaultLocation = () => {
+      if (userLocation) {
+        try {
+          const [lat, lng] = userLocation.split(',').map(coord => parseFloat(coord.trim()));
+          if (!isNaN(lat) && !isNaN(lng)) {
+            return { lat, lng };
+          }
+        } catch (e) {
+          console.warn('Invalid user location format:', userLocation);
+        }
+      }
+      // Default to Portland, OR area (based on the user data coordinates)
+      return { lat: 45.5152, lng: -122.6784 };
+    };
+
     if (events.length === 0) {
-      // Default Seattle area if no events
-      return "https://www.openstreetmap.org/export/embed.html?bbox=-122.4194%2C47.5444%2C-122.2419%2C47.6742&layer=mapnik";
+      // Use user's location or default area if no events
+      const defaultLoc = getDefaultLocation();
+      const padding = defaultZoom; // Use configurable zoom level around user location
+      const minLat = defaultLoc.lat - padding;
+      const maxLat = defaultLoc.lat + padding;
+      const minLng = defaultLoc.lng - padding;
+      const maxLng = defaultLoc.lng + padding;
+      
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik`;
     }
 
     // Parse coordinates and create markers data
@@ -29,21 +56,59 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
     }).filter(coord => !isNaN(coord.lat) && !isNaN(coord.lng));
 
     if (coordinates.length === 0) {
-      // Fallback if no valid coordinates
-      return "https://www.openstreetmap.org/export/embed.html?bbox=-122.4194%2C47.5444%2C-122.2419%2C47.6742&layer=mapnik";
+      // Fallback to user location if no valid event coordinates
+      const defaultLoc = getDefaultLocation();
+      const padding = defaultZoom; // Use configurable zoom level
+      const minLat = defaultLoc.lat - padding;
+      const maxLat = defaultLoc.lat + padding;
+      const minLng = defaultLoc.lng - padding;
+      const maxLng = defaultLoc.lng + padding;
+      
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik`;
     }
 
-    // Calculate bounding box
-    const lats = coordinates.map(coord => coord.lat);
-    const lngs = coordinates.map(coord => coord.lng);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
+    // Calculate bounding box centered on user location first
+    const defaultLoc = getDefaultLocation();
+    
+    // Start with user-centered bounds using the default zoom level
+    let minLat = defaultLoc.lat - defaultZoom;
+    let maxLat = defaultLoc.lat + defaultZoom;
+    let minLng = defaultLoc.lng - defaultZoom;
+    let maxLng = defaultLoc.lng + defaultZoom;
 
-    // Add padding to bounds (minimum padding for single point)
-    const latPadding = Math.max((maxLat - minLat) * 0.2, 0.01);
-    const lngPadding = Math.max((maxLng - minLng) * 0.2, 0.01);
+    // Only expand the view if there are nearby events (within reasonable distance)
+    if (coordinates.length > 0) {
+      const eventLats = coordinates.map(coord => coord.lat);
+      const eventLngs = coordinates.map(coord => coord.lng);
+      
+      const eventMinLat = Math.min(...eventLats);
+      const eventMaxLat = Math.max(...eventLats);
+      const eventMinLng = Math.min(...eventLngs);
+      const eventMaxLng = Math.max(...eventLngs);
+      
+      // Check if events are within a reasonable distance from user (0.1 degrees ≈ 11km)
+      const maxDistance = 0.1;
+      const eventsNearby = coordinates.some(coord => 
+        Math.abs(coord.lat - defaultLoc.lat) <= maxDistance &&
+        Math.abs(coord.lng - defaultLoc.lng) <= maxDistance
+      );
+      
+      // Only expand bounds to include events if they're nearby
+      if (eventsNearby) {
+        minLat = Math.min(minLat, eventMinLat);
+        maxLat = Math.max(maxLat, eventMaxLat);
+        minLng = Math.min(minLng, eventMinLng);
+        maxLng = Math.max(maxLng, eventMaxLng);
+        
+        // Add small padding around the expanded bounds
+        const latPadding = (maxLat - minLat) * 0.1;
+        const lngPadding = (maxLng - minLng) * 0.1;
+        minLat -= latPadding;
+        maxLat += latPadding;
+        minLng -= lngPadding;
+        maxLng += lngPadding;
+      }
+    }
 
     // Create markers data
     const markersData = coordinates.map(coord => {
@@ -55,9 +120,25 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
         date: coord.event.date,
         time: coord.event.time,
         location: coord.event.location,
-        isUserEvent
+        isUserEvent,
+        type: 'event'
       };
     });
+
+    // Add user location marker if available
+    if (userLocation) {
+      const defaultLoc = getDefaultLocation();
+      markersData.push({
+        lat: defaultLoc.lat,
+        lng: defaultLoc.lng,
+        name: 'Your Location',
+        date: '',
+        time: '',
+        location: 'Your current location',
+        isUserEvent: false,
+        type: 'user'
+      });
+    }
 
     // Generate Leaflet map HTML
     const mapHtml = `
@@ -80,8 +161,8 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
     <div id="map"></div>
     <script>
         var map = L.map('map').fitBounds([
-            [${minLat - latPadding}, ${minLng - lngPadding}],
-            [${maxLat + latPadding}, ${maxLng + lngPadding}]
+            [${minLat}, ${minLng}],
+            [${maxLat}, ${maxLng}]
         ]);
         
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -91,21 +172,39 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
         var markers = ${JSON.stringify(markersData)};
         
         markers.forEach(function(marker) {
-            var icon = L.divIcon({
-                html: '<div style="background-color: ' + (marker.isUserEvent ? '#38a169' : '#3182ce') + '; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.3); font-size: 16px;">📍</div>',
-                className: 'custom-marker',
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
-            });
+            var icon, popupContent;
             
-            var popupContent = '<div class="custom-popup">' +
-                '<div class="' + (marker.isUserEvent ? 'user-event' : 'available-event') + '">' + marker.name + '</div>' +
-                '<div>📅 ' + marker.date + '</div>' +
-                '<div>🕐 ' + marker.time + '</div>' +
-                '<div>📍 ' + marker.location + '</div>' +
-                '<div style="margin-top: 5px; font-size: 12px; color: #666;">' + 
-                (marker.isUserEvent ? 'You are attending this event' : 'Available to join') + '</div>' +
-                '</div>';
+            if (marker.type === 'user') {
+                // User location marker
+                icon = L.divIcon({
+                    html: '<div style="background-color: #e53e3e; color: white; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.3); font-size: 18px;">📍</div>',
+                    className: 'user-marker',
+                    iconSize: [35, 35],
+                    iconAnchor: [17.5, 17.5]
+                });
+                
+                popupContent = '<div class="custom-popup">' +
+                    '<div style="color: #e53e3e; font-weight: bold;">' + marker.name + '</div>' +
+                    '<div>📍 ' + marker.location + '</div>' +
+                    '</div>';
+            } else {
+                // Event marker
+                icon = L.divIcon({
+                    html: '<div style="background-color: ' + (marker.isUserEvent ? '#38a169' : '#3182ce') + '; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.3); font-size: 16px;">🎪</div>',
+                    className: 'event-marker',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+                
+                popupContent = '<div class="custom-popup">' +
+                    '<div class="' + (marker.isUserEvent ? 'user-event' : 'available-event') + '">' + marker.name + '</div>' +
+                    '<div>📅 ' + marker.date + '</div>' +
+                    '<div>🕐 ' + marker.time + '</div>' +
+                    '<div>📍 ' + marker.location + '</div>' +
+                    '<div style="margin-top: 5px; font-size: 12px; color: #666;">' + 
+                    (marker.isUserEvent ? 'You are attending this event' : 'Available to join') + '</div>' +
+                    '</div>';
+            }
             
             var mapMarker = L.marker([marker.lat, marker.lng], {icon: icon})
                 .addTo(map)
@@ -129,11 +228,11 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
     return dataUri;
   };
 
-  // Update map URL when events change
+  // Update map URL when events or user location changes
   useEffect(() => {
     const newMapUrl = generateMapUrl();
     setMapUrl(newMapUrl);
-  }, [events, userEventVendors]);
+  }, [events, userEventVendors, userLocation]);
 
   return (
     <Box height={height} position="relative">

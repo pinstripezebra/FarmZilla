@@ -68,7 +68,12 @@ const EventsMap: React.FC<EventsMapProps> = ({
       <Grid templateColumns="1fr 1fr" gap={4} height="100%">
         {/* Left side - Map */}
         <GridItem>
-          <EventsMapDisplay events={events} userEventVendors={userEventVendors} height="100%" />
+          <EventsMapDisplay 
+            events={events} 
+            userEventVendors={userEventVendors} 
+            userLocation={user?.location}
+            height="100%" 
+          />
         </GridItem>
 
         {/* Right side - Event signup/management */}
