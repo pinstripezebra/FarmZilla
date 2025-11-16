@@ -53,7 +53,7 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered, cu
           bg={currentView === "browse-products" ? "teal.600" : undefined}
           color={currentView === "browse-products" ? "white" : undefined}
         >
-          Products
+          🛒 Products
         </Button>
         <Button 
           colorScheme="teal" 
@@ -62,7 +62,7 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered, cu
           bg={currentView === "browse-farmers" ? "teal.600" : undefined}
           color={currentView === "browse-farmers" ? "white" : undefined}
         >
-          Farmers
+          👨‍🌾 Farmers
         </Button>
         
         <Divider />
@@ -75,7 +75,7 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered, cu
           bg={currentView === "my-orders" ? "teal.600" : undefined}
           color={currentView === "my-orders" ? "white" : undefined}
         >
-          My Orders
+          📦 My Orders
         </Button>
         <Button 
           colorScheme="teal" 
@@ -84,7 +84,7 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered, cu
           bg={currentView === "favorites" ? "teal.600" : undefined}
           color={currentView === "favorites" ? "white" : undefined}
         >
-          Favorites
+          ❤️ Favorites
         </Button>
         
         <Divider />
@@ -98,7 +98,7 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered, cu
           bg={currentView === "category-vegetables" ? "teal.500" : undefined}
           color={currentView === "category-vegetables" ? "white" : undefined}
         >
-          Vegetables
+          🥬 Vegetables
         </Button>
         <Button 
           colorScheme={currentView === "category-fruits" ? "teal" : "gray"} 
@@ -108,7 +108,7 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered, cu
           bg={currentView === "category-fruits" ? "teal.500" : undefined}
           color={currentView === "category-fruits" ? "white" : undefined}
         >
-          Fruits
+          🍎 Fruits
         </Button>
         <Button 
           colorScheme={currentView === "category-grains" ? "teal" : "gray"} 
@@ -118,7 +118,7 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered, cu
           bg={currentView === "category-grains" ? "teal.500" : undefined}
           color={currentView === "category-grains" ? "white" : undefined}
         >
-          Grains
+          🌾 Grains
         </Button>
         <Button 
           colorScheme={currentView === "category-dairy" ? "teal" : "gray"} 
@@ -128,7 +128,7 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered, cu
           bg={currentView === "category-dairy" ? "teal.500" : undefined}
           color={currentView === "category-dairy" ? "white" : undefined}
         >
-          Dairy
+          🥛 Dairy
         </Button>
         <Button 
           colorScheme={currentView === "category-meat" ? "teal" : "gray"} 
@@ -138,7 +138,7 @@ const ConsumerSideBar: React.FC<ConsumerSideBarProps> = ({ onActionTriggered, cu
           bg={currentView === "category-meat" ? "teal.500" : undefined}
           color={currentView === "category-meat" ? "white" : undefined}
         >
-          Meat
+          🥩 Meat
         </Button>
       </VStack>
     </Box>

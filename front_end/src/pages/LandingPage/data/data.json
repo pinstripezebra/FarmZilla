@@ -1,39 +1,40 @@
 {
   "Introduction": {
-    "header": "We are Optigame",
-    "subtext": "Helping you find your next great Boardgame",
-    "buttonText": "Signup/Login"
+    "header": "Welcome to FarmZilla",
+    "subtext": "Your local marketplace connecting communities with fresh, local produce from nearby farms",
+    "buttonText": "Start Shopping"
   },
   "Features": [
     {
-      "image": "https://img.icons8.com/color/96/000000/idea.png",
-      "title": "Smart Recommendations",
-      "text": "Get personalized game suggestions based on your preferences and play history."
+      "image": "https://img.icons8.com/color/96/000000/location.png",
+      "title": "Local Discovery",
+      "text": "Find fresh produce from farms and markets in your local area with our interactive map."
     },
     {
-      "image": "https://img.icons8.com/color/96/000000/rating.png",
-      "title": "Community Ratings",
-      "text": "See ratings and reviews from real players to help you choose your next game."
+      "image": "https://img.icons8.com/color/96/000000/organic-food.png",
+      "title": "Fresh & Local",
+      "text": "Support local farmers and get the freshest produce harvested nearby in your community."
     },
     {
-      "image": "https://img.icons8.com/color/96/000000/checked-checkbox.png",
-      "title": "Track Your Shelf",
-      "text": "Easily manage your 'Want to Play' and 'Have Played' lists in one place."
+      "image": "https://img.icons8.com/color/96/000000/calendar.png",
+      "title": "Market Events",
+      "text": "Discover farmers markets, farm stands, and seasonal events happening near you."
     },
     {
-      "image": "https://img.icons8.com/color/96/000000/share.png",
-      "title": "Share & Connect",
-      "text": "Share your favorite games and connect with friends for a social gaming experience."
+      "image": "https://img.icons8.com/color/96/000000/handshake.png",
+      "title": "Direct Connection",
+      "text": "Connect directly with local producers and learn about their farming practices and products."
     }
   ],
   "AboutUs": {
-    "blurb": "Optigame is your personalized board game companion, helping you discover, track, and share your favorite games. Whether you're a casual player or a dedicated enthusiast, Optigame makes finding your next great board game easy and fun.",
+    "blurb": "FarmZilla is your gateway to local agriculture, connecting consumers with fresh, seasonal produce from nearby farms and producers. We believe in strengthening local food systems and supporting sustainable farming practices in your community.",
     "whyChoose": [
-      "Personalized recommendations tailored to your tastes",
-      "Easy shelf management for games you want to play and have played",
-      "Community-driven ratings and reviews",
-      "Modern, user-friendly interface",
-      "Connect and share with friends"
+      "Fresh produce directly from local farms",
+      "Support sustainable and local agriculture",
+      "Interactive maps to find nearby producers",
+      "Discover seasonal markets and farm events",
+      "Build relationships with your local farming community",
+      "Reduce food miles and environmental impact"
     ]
   }
 }

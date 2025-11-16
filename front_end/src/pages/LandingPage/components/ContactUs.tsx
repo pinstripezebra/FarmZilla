@@ -23,7 +23,7 @@ const ContactUs = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Here you would handle sending the form data
-    alert("Message sent!");
+    alert("Thanks for reaching out! We'll help you connect with local producers soon.");
     setForm({ name: "", email: "", message: "" });
   };
 
@@ -52,8 +52,8 @@ const ContactUs = () => {
     </Heading>
       <Box height="18px" />
       <Text textAlign="center" mb={8}>
-        Please fill out the form below to send us an email and we will get back
-        to you as soon as possible.
+        Have questions about local producers or need help finding fresh produce? 
+        Contact us and we'll connect you with the right farmers in your area.
       </Text>
       <form onSubmit={handleSubmit}>
         <Flex gap={4} mb={4}>

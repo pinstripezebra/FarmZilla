@@ -40,7 +40,7 @@ const Gallery = () => {
             </Heading>
             <Box height="18px" /> 
             <Spacer />  <Text fontSize="md" color="gray.600" mb={6}>
-                Optigame makes it simple to manage your gaming wishlist and find new games. Here are some screenshots showcasing its features in action.
+                FarmZilla connects you with fresh, local produce and farmers markets. Here are some screenshots showcasing how easy it is to find and support local agriculture.
             </Text>
             <SimpleGrid columns={2} spacing={4} maxW="800px" mx="auto">
                 {images.map((img, idx) => (

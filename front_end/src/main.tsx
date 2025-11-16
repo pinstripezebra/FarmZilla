@@ -79,12 +79,17 @@ const router = createBrowserRouter([
     errorElement: <NotFoundPage />,
   },
   {
-    path: "/",
+    path: "/ProducerHomePage",
     element: (
       <ProtectedRoute>
         <HomePage />
       </ProtectedRoute>
     ),
+    errorElement: <NotFoundPage />,
+  },
+  {
+    path: "/",
+    element: <LandingPage />,
     errorElement: <NotFoundPage />,
   },
 ]);

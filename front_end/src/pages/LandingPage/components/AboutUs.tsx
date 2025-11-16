@@ -44,8 +44,8 @@ const AboutUs: React.FC<AboutUsProps> = ({ blurb, whyChoose }) => {
         {/* Left: Image */}
         <Box display="flex" justifyContent="center">
           <Image
-            src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80"
-            alt="Board game"
+            src="https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=400&q=80"
+            alt="Local farm with fresh produce"
             borderRadius="lg"
             boxSize={{ base: "250px", md: "350px" }}
             objectFit="cover"
@@ -56,7 +56,7 @@ const AboutUs: React.FC<AboutUsProps> = ({ blurb, whyChoose }) => {
         <VStack align="start" spacing={5} alignContent={"left"}>
           <Text fontSize="lg">{blurb}</Text>
           <Text fontWeight="bold" mt={2}>
-            Why choose Optigame?
+            Why choose FarmZilla?
           </Text>
           <UnorderedList pl={5} spacing={2}>
             {whyChoose.map((reason, idx) => (
