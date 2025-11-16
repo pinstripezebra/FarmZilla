@@ -23,6 +23,7 @@ const ConsumerMap: React.FC<ConsumerMapProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   
   const { user } = useUser();
   
@@ -122,6 +123,8 @@ const ConsumerMap: React.FC<ConsumerMapProps> = ({
                 userEventVendors={userEventVendors}
                 userLocation={user?.location}
                 defaultZoom={0.01}
+                selectedEventId={selectedEventId}
+                onEventSelect={setSelectedEventId}
                 height="100%" 
               />
             )}
@@ -131,6 +134,8 @@ const ConsumerMap: React.FC<ConsumerMapProps> = ({
           <ProductsPanel 
             searchQuery={searchQuery}
             onProductSelect={handleProductSelect}
+            selectedEventId={selectedEventId}
+            onClearEventSelection={() => setSelectedEventId(null)}
             height="100%"
           />
         </Box>

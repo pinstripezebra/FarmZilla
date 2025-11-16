@@ -4,9 +4,10 @@ import {
   HStack, Badge, Spinner, Alert, AlertIcon, Image, 
   Divider, IconButton, Collapse, useDisclosure
 } from '@chakra-ui/react';
-import { StarIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
+import { StarIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon } from '@chakra-ui/icons';
 import { productService, type Product } from '../../../services/productService';
 import { ratingService } from '../../../services/ratingService';
+import { eventService } from '../../../services/eventService';
 
 interface ProductWithProducer extends Product {
   producer_name?: string;
@@ -18,16 +19,21 @@ interface ProductsPanelProps {
   searchQuery?: string;
   onProductSelect?: (product: ProductWithProducer) => void;
   height?: string;
+  selectedEventId?: string | null; // Filter products by event
+  onClearEventSelection?: () => void; // Callback to clear event selection
 }
 
 const ProductsPanel: React.FC<ProductsPanelProps> = ({ 
   searchQuery = "", 
   onProductSelect,
-  height = "100%" 
+  height = "100%",
+  selectedEventId,
+  onClearEventSelection 
 }) => {
   const [products, setProducts] = useState<ProductWithProducer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  const [eventProducers, setEventProducers] = useState<string[]>([]); // Producer IDs for selected event
   const { isOpen: isExpanded, onToggle } = useDisclosure({ defaultIsOpen: true });
 
 
@@ -78,12 +84,38 @@ const ProductsPanel: React.FC<ProductsPanelProps> = ({
     fetchProductsAndRatings();
   }, []);
 
-  // Filter products based on search query
-  const filteredProducts = products.filter(product => 
-    product.product_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.producer_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Fetch event vendors when selected event changes
+  useEffect(() => {
+    const fetchEventProducers = async () => {
+      if (selectedEventId) {
+        try {
+          const vendors = await eventService.getEventVendorsByEventId(selectedEventId);
+          setEventProducers(vendors.map(vendor => vendor.producer_id));
+        } catch (error) {
+          console.error('Error fetching event vendors:', error);
+          setEventProducers([]);
+        }
+      } else {
+        setEventProducers([]);
+      }
+    };
+
+    fetchEventProducers();
+  }, [selectedEventId]);
+
+  // Filter products based on search query and selected event
+  const filteredProducts = products.filter(product => {
+    // First filter by search query
+    const matchesSearch = 
+      product.product_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.producer_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Then filter by selected event (if any)
+    const matchesEvent = !selectedEventId || eventProducers.includes(product.user_id || "");
+    
+    return matchesSearch && matchesEvent;
+  });
 
   const renderRatingStars = (rating: number, totalReviews: number) => {
     const stars = [];
@@ -186,7 +218,26 @@ const ProductsPanel: React.FC<ProductsPanelProps> = ({
               <Text fontSize="sm" color="gray.600">
                 {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
                 {searchQuery && ` for "${searchQuery}"`}
+                {selectedEventId && ` at selected event`}
               </Text>
+              
+              {/* Event filter status */}
+              {selectedEventId && (
+                <HStack mt={2} spacing={2}>
+                  <Badge colorScheme="teal" variant="subtle">
+                    Event Filter Active
+                  </Badge>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    colorScheme="gray"
+                    leftIcon={<CloseIcon />}
+                    onClick={onClearEventSelection}
+                  >
+                    Clear
+                  </Button>
+                </HStack>
+              )}
             </Box>
 
             <Divider />
@@ -194,9 +245,11 @@ const ProductsPanel: React.FC<ProductsPanelProps> = ({
             {filteredProducts.length === 0 ? (
               <Box textAlign="center" py={8}>
                 <Text color="gray.500" fontSize="lg">
-                  {searchQuery 
-                    ? `No products found matching "${searchQuery}"`
-                    : "No products available at this time"
+                  {selectedEventId
+                    ? "No products available at the selected event"
+                    : searchQuery 
+                      ? `No products found matching "${searchQuery}"`
+                      : "No products available at this time"
                   }
                 </Text>
               </Box>

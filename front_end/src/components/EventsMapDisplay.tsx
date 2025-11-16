@@ -8,6 +8,8 @@ interface EventsMapDisplayProps {
   height?: string;
   userLocation?: string; // User's location in "lat,lng" format
   defaultZoom?: number; // Default zoom level when no events
+  selectedEventId?: string | null; // ID of currently selected event
+  onEventSelect?: (eventId: string | null) => void; // Callback for event selection
 }
 
 const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({ 
@@ -15,7 +17,9 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
   userEventVendors,
   height = "100%",
   userLocation,
-  defaultZoom = 0.05 
+  defaultZoom = 0.05,
+  selectedEventId,
+  onEventSelect
 }) => {
   const [mapUrl, setMapUrl] = useState<string>("");
 
@@ -113,6 +117,7 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
     // Create markers data
     const markersData = coordinates.map(coord => {
       const isUserEvent = userEventVendors.some(vendor => vendor.event_id === coord.event.event_id);
+      const isSelected = selectedEventId === coord.event.event_id;
       return {
         lat: coord.lat,
         lng: coord.lng,
@@ -121,6 +126,8 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
         time: coord.event.time,
         location: coord.event.location,
         isUserEvent,
+        isSelected,
+        eventId: coord.event.event_id,
         type: 'event'
       };
     });
@@ -136,6 +143,8 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
         time: '',
         location: 'Your current location',
         isUserEvent: false,
+        isSelected: false,
+        eventId: '',
         type: 'user'
       });
     }
@@ -188,12 +197,16 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
                     '<div>📍 ' + marker.location + '</div>' +
                     '</div>';
             } else {
-                // Event marker
+                // Event marker - different styling for selected vs unselected
+                var markerColor = marker.isSelected ? '#e53e3e' : (marker.isUserEvent ? '#38a169' : '#3182ce');
+                var markerSize = marker.isSelected ? 35 : 30;
+                var borderWidth = marker.isSelected ? 4 : 3;
+                
                 icon = L.divIcon({
-                    html: '<div style="background-color: ' + (marker.isUserEvent ? '#38a169' : '#3182ce') + '; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.3); font-size: 16px;">🎪</div>',
+                    html: '<div style="background-color: ' + markerColor + '; color: white; border-radius: 50%; width: ' + markerSize + 'px; height: ' + markerSize + 'px; display: flex; align-items: center; justify-content: center; border: ' + borderWidth + 'px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.3); font-size: 16px; cursor: pointer;">🎪</div>',
                     className: 'event-marker',
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 15]
+                    iconSize: [markerSize, markerSize],
+                    iconAnchor: [markerSize/2, markerSize/2]
                 });
                 
                 popupContent = '<div class="custom-popup">' +
@@ -210,7 +223,18 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
                 .addTo(map)
                 .bindPopup(popupContent);
             
-            // Show popup on hover instead of click
+            // Add click handler for event selection
+            if (marker.type === 'event') {
+                mapMarker.on('click', function() {
+                    window.parent.postMessage({
+                        type: 'EVENT_SELECT',
+                        eventId: marker.eventId,
+                        isSelected: marker.isSelected
+                    }, '*');
+                });
+            }
+            
+            // Show popup on hover
             mapMarker.on('mouseover', function() {
                 this.openPopup();
             });
@@ -232,7 +256,21 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
   useEffect(() => {
     const newMapUrl = generateMapUrl();
     setMapUrl(newMapUrl);
-  }, [events, userEventVendors, userLocation]);
+  }, [events, userEventVendors, userLocation, selectedEventId]);
+
+  // Add message listener for event selection from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'EVENT_SELECT' && onEventSelect) {
+        const { eventId, isSelected } = event.data;
+        // Toggle selection: if already selected, deselect; otherwise select
+        onEventSelect(isSelected ? null : eventId);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onEventSelect]);
 
   return (
     <Box height={height} position="relative">
