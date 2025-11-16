@@ -54,10 +54,14 @@ const EventsMapDisplay: React.FC<EventsMapDisplayProps> = ({
     }
 
     // Parse coordinates and create markers data
+    console.log('Events passed to map:', events.length);
     const coordinates = events.map(event => {
       const [lat, lng] = event.coordinates.split(',').map(coord => parseFloat(coord.trim()));
+      console.log(`Event ${event.name}: ${event.coordinates} -> lat: ${lat}, lng: ${lng}`);
       return { lat, lng, event };
     }).filter(coord => !isNaN(coord.lat) && !isNaN(coord.lng));
+    
+    console.log('Valid coordinates:', coordinates.length);
 
     if (coordinates.length === 0) {
       // Fallback to user location if no valid event coordinates

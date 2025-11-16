@@ -1,22 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, Input, InputGroup, InputLeftElement, 
-  VStack, Heading
+  VStack
 } from '@chakra-ui/react';
 import { SearchIcon } from '@chakra-ui/icons';
 import EventsMapDisplay from '../../../components/EventsMapDisplay';
 import ProductsPanel from './ProductsPanel';
 import { eventService, type Event, type EventVendor } from '../../../services/eventService';
 import { useUser } from '../../../context/UserContex';
+import type { Product } from '../../../services/productService';
+
+interface ProductWithProducer extends Product {
+  producer_name?: string;
+  producer_rating?: number;
+  total_reviews?: number;
+}
 
 interface ConsumerMapProps {
   height?: string;
   width?: string;
+  onProductSelect?: (product: ProductWithProducer) => void;
 }
 
 const ConsumerMap: React.FC<ConsumerMapProps> = ({ 
   height = "600px", 
-  width = "100%" 
+  width = "100%",
+  onProductSelect 
 }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [userEventVendors] = useState<EventVendor[]>([]); // Consumer won't have event vendors
@@ -35,12 +44,17 @@ const ConsumerMap: React.FC<ConsumerMapProps> = ({
       // Fetch all upcoming events for consumer view
       const eventsData = await eventService.getAllEvents();
       
-      // Filter for future events only
+      // Filter for recent and upcoming events (show events from last 30 days and future events)
       const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
       const upcomingEvents = eventsData.filter(event => {
         const eventDate = new Date(event.date);
-        return eventDate >= now;
+        return eventDate >= thirtyDaysAgo; // Show events from last 30 days onwards
       });
+
+      console.log('Total events fetched:', eventsData.length);
+      console.log('Events after date filtering:', upcomingEvents.length);
+      console.log('Events:', upcomingEvents.map(e => ({ name: e.name, date: e.date })));
 
       setEvents(upcomingEvents);
     } catch (err: any) {
@@ -65,9 +79,13 @@ const ConsumerMap: React.FC<ConsumerMapProps> = ({
     event.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleProductSelect = (product: any) => {
-    // Handle product selection - could open a modal, navigate to details, etc.
-    console.log('Product selected:', product);
+  const handleProductSelect = (product: ProductWithProducer) => {
+    // Pass product selection up to parent component
+    if (onProductSelect) {
+      onProductSelect(product);
+    } else {
+      console.log('Product selected:', product);
+    }
   };
 
   return (
@@ -75,9 +93,6 @@ const ConsumerMap: React.FC<ConsumerMapProps> = ({
       <VStack spacing={4} align="stretch" height="100%">
         {/* Search Bar */}
         <Box>
-          <Heading size="lg" color="teal.600" mb={4}>
-            Discover Local Products & Events
-          </Heading>
           <InputGroup size="lg">
             <InputLeftElement pointerEvents="none">
               <SearchIcon color="gray.400" />

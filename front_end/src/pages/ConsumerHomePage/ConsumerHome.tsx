@@ -6,7 +6,9 @@ import MarketPlaceFarmsTable from "../../components/MarketPlaceFarmsTable";
 import ConsumerFavoritesPage from "./ConsumerAssets/ConsumerFavoritesPage";
 import ViewFarmerProducts from "./ConsumerAssets/ViewFarmerProducts";
 import ConsumerMap from "./ConsumerAssets/ConsumerMap";
+import ViewProduct from "./ConsumerAssets/ViewProduct";
 import TopBar from "../../components/TopBar";
+import type { Product } from "../../services/productService";
 
 interface Producer {
   id: string;
@@ -16,9 +18,17 @@ interface Producer {
   productCount?: number;
 }
 
+interface ProductWithProducer extends Product {
+  producer_name?: string;
+  producer_rating?: number;
+  total_reviews?: number;
+}
+
 const ConsumerHome: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>("maps");
   const [selectedProducer, setSelectedProducer] = useState<Producer | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductWithProducer | null>(null);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
   const handleSidebarAction = (action: string) => {
     console.log("Sidebar action triggered:", action);
@@ -36,10 +46,20 @@ const ConsumerHome: React.FC = () => {
     setCurrentView("browse-farmers");
   };
 
+  const handleProductSelect = (product: ProductWithProducer) => {
+    setSelectedProduct(product);
+    setIsProductModalOpen(true);
+  };
+
+  const handleCloseProductModal = () => {
+    setIsProductModalOpen(false);
+    setSelectedProduct(null);
+  };
+
   const renderContent = () => {
     switch (currentView) {
       case "maps":
-        return <ConsumerMap height="calc(100vh - 200px)" />;
+        return <ConsumerMap height="calc(100vh - 200px)" onProductSelect={handleProductSelect} />;
       case "browse-products":
         return <MarketplaceProductsTable onViewProducer={handleViewFarmerProducts} />;
       case "browse-farmers":
@@ -117,6 +137,13 @@ const ConsumerHome: React.FC = () => {
           </Box>
         </Flex>
       </Flex>
+
+      {/* Product Detail Modal */}
+      <ViewProduct 
+        isOpen={isProductModalOpen}
+        onClose={handleCloseProductModal}
+        product={selectedProduct}
+      />
     </Flex>
   );
 };
