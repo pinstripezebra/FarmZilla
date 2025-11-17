@@ -46,10 +46,10 @@ function Login() {
   const [localUsername, setLocalUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
 
   // State for loading spinner
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { setUser } = useUser();
   const toast = useToast(); // Initialize toast for error messages

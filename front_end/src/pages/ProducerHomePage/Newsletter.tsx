@@ -67,7 +67,7 @@ const Newsletter: React.FC = () => {
 
     try {
       // Get user's event vendor relationships
-      const userEventVendors = await eventService.getEventVendorsByConsumerId(user.id);
+      const userEventVendors = await eventService.getEventVendorsByProducerId(user.id);
       
       // Fetch all events and filter for user's events
       const allEvents = await eventService.getAllEvents();

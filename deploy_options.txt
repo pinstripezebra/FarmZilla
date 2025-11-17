@@ -1,0 +1,179 @@
+===========================================================================
+                    🚀 FARMZILLA DEPLOYMENT OPTIONS 🚀
+===========================================================================
+
+PREREQUISITES: AWS CLI configured, Docker running, GitHub token in .env
+
+===========================================================================
+🎯 QUICK START (Run from back_end/src/)
+===========================================================================
+
+# Complete setup (first time)
+python deploy_all.py --full-setup
+
+# Deploy apps only
+python deploy_all.py --deploy-apps
+
+# Setup CI/CD only
+python deploy_all.py --setup-pipeline
+
+# View costs
+python deploy_all.py --cost-report
+
+===========================================================================
+📦 BACKEND DEPLOYMENT (back_end/src/)
+===========================================================================
+
+FULL DEPLOY:     python deploy.py
+UPDATE ONLY:     python deploy.py --update-only
+SCALE:           python deploy.py --scale [NUMBER]
+STOP/START:      python deploy.py --stop / --scale 1
+DELETE:          python deploy.py --delete
+
+Config: farmzilla-cluster, 512 CPU, 1024 MB, Port 8000
+
+===========================================================================
+🌐 FRONTEND DEPLOYMENT (back_end/src/)
+===========================================================================
+
+FULL DEPLOY:     python deploy_frontend.py
+UPDATE ONLY:     python deploy_frontend.py --update-only
+SCALE:           python deploy_frontend.py --scale [NUMBER]
+STOP/START:      python deploy_frontend.py --stop / --scale 1
+DELETE:          python deploy_frontend.py --delete
+
+Config: farmzilla-frontend-cluster, 256 CPU, 512 MB, Port 80
+
+===========================================================================
+🔄 CI/CD PIPELINE (back_end/src/)
+===========================================================================
+
+SETUP:           python setup_codepipeline.py
+
+WORKFLOW AFTER SETUP:
+1. Make code changes
+2. git push origin main
+3. Automatic build & deploy
+
+Pipelines: farmzilla-backend-pipeline, farmzilla-frontend-pipeline
+
+===========================================================================
+🎛️ MASTER SCRIPT OPTIONS (back_end/src/)
+===========================================================================
+
+--full-setup      Deploy apps + setup CI/CD (recommended first time)
+--deploy-apps     Deploy both backend and frontend
+--deploy-backend  Deploy backend only
+--deploy-frontend Deploy frontend only
+--setup-pipeline  Setup CI/CD only
+--cost-report     Show cost breakdown
+
+===========================================================================
+� COST INFO
+===========================================================================
+
+MONTHLY COSTS:
+• Backend: ~$12-15 (512 CPU, 1024 MB)
+• Frontend: ~$6-8 (256 CPU, 512 MB)
+• CI/CD: ~$3-5
+• Total: ~$25-30/month
+
+COST SAVING:
+python deploy.py --stop              # Stop backend
+python deploy_frontend.py --stop     # Stop frontend
+python deploy.py --scale 1           # Restart backend
+python deploy_frontend.py --scale 1  # Restart frontend
+
+===========================================================================
+🚨 COMMON ISSUES & SOLUTIONS
+===========================================================================
+
+❌ AWS credentials not configured → Run `aws configure`
+❌ Docker daemon not running → Start Docker Desktop
+❌ Service already exists → Use --update-only flag
+❌ GitHub token invalid → Update GITHUB_TOKEN in .env
+❌ Task failed to start → Check CloudWatch logs in AWS Console
+
+❌ "Waiter ServicesStable failed: Max attempts exceeded"
+→ Service taking too long to stabilize. Check these:
+
+IMMEDIATE CHECKS:
+1. aws ecs describe-services --cluster farmzilla-cluster --services farmzilla-service
+2. aws ecs describe-tasks --cluster farmzilla-cluster --tasks [TASK-ARN]
+3. Check CloudWatch logs: /ecs/farmzilla
+
+COMMON CAUSES:
+• Health check failures (port 8000 not responding)
+• Insufficient memory/CPU (increase in .env)
+• Database connection issues (check RDS connectivity)
+• Security group blocking traffic
+• Task keeps restarting due to application errors
+
+QUICK FIXES:
+• Increase CPU/MEMORY in .env (try CPU=1024, MEMORY=2048)
+• Check application logs for startup errors
+• Verify DATABASE_URL connection string
+• Ensure security group allows port 8000
+
+❌ "Unknown parameter in input: lifecyclePolicy"
+→ ECR repository creation issue (fixed in latest scripts)
+• Run: python deploy_frontend.py --update-only
+• Or delete and recreate: aws ecr delete-repository --repository-name farmzilla-frontend --force
+
+❌ "502 Bad Gateway" or Docker registry connection errors
+→ Docker Hub registry connectivity issues
+QUICK FIXES:
+• Restart Docker Desktop
+• Wait 2-3 minutes and retry the deployment
+• Check internet connectivity
+• Run: docker system prune -f (clean Docker cache)
+• Alternative: docker pull nginx:alpine (test registry access)
+
+❌ TypeScript compilation errors in frontend build
+→ "'variable' is declared but its value is never read"
+QUICK FIXES:
+• If only using setter: const [_variable, setVariable] = useState()
+• Add ESLint disable comment above the line
+• Remove unused variables entirely if not needed
+
+❌ "CodeBuild is not authorized to perform: sts:AssumeRole on service role"
+→ IAM role creation timing issue (AWS eventual consistency)
+QUICK FIXES:
+• Wait 1-2 minutes and retry the deployment
+• Check IAM role exists: aws iam get-role --role-name [ROLE-NAME]
+• If role missing: Delete CodeBuild project and retry setup
+
+❌ "CodePipeline is not authorized to perform AssumeRole on role"
+→ CodePipeline IAM role timing issue (AWS eventual consistency)
+QUICK FIXES:
+• Wait 2-3 minutes and retry: python setup_codepipeline.py
+• Check role: aws iam get-role --role-name farmzilla-codepipeline-role
+• Manual fix: Delete pipeline in AWS Console and retry
+
+===========================================================================
+📊 MONITORING
+===========================================================================
+
+AWS CONSOLE:
+• ECS Services: AWS Console → ECS → Clusters
+• Logs: AWS Console → CloudWatch → Log groups
+• Pipelines: AWS Console → CodePipeline
+
+LOG GROUPS:
+• Backend: /ecs/farmzilla
+• Frontend: /ecs/farmzilla-frontend
+
+HEALTH CHECKS:
+• Backend API: http://[IP]:8000/docs
+• Frontend: http://[IP]
+
+===========================================================================
+� KEY FILES
+===========================================================================
+
+• Scripts: back_end/src/
+• Config: .env (project root)
+• Build specs: buildspec-*.yml (project root)
+• Frontend Docker: front_end/Dockerfile
+
+===========================================================================

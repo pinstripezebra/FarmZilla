@@ -1,12 +1,14 @@
 """
-AWS ECS Fargate Deployment Automation Script for FarmZilla
-Automates the deployment of FastAPI application to AWS Fargate with S3 and RDS access
+AWS ECS Fargate Deployment Script for FarmZilla React Frontend
+Builds Docker image, pushes to ECR, and deploys to Fargate with cost optimization
 """
 
 import boto3
 import json
 import time
 import os
+import subprocess
+import sys
 from dotenv import load_dotenv
 from botocore.exceptions import ClientError
 
@@ -14,7 +16,7 @@ from botocore.exceptions import ClientError
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv(os.path.join(project_root, '.env'))
 
-class FarmZillaFargateDeployer:
+class FarmZillaFrontendDeployer:
     def __init__(self):
         # Load AWS configuration from environment variables
         self.region = os.getenv('AWS_REGION')
@@ -28,40 +30,42 @@ class FarmZillaFargateDeployer:
         self.ec2_client = boto3.client('ec2', region_name=self.region)
         self.logs_client = boto3.client('logs', region_name=self.region)
         self.iam_client = boto3.client('iam', region_name=self.region)
+        self.ecr_client = boto3.client('ecr', region_name=self.region)
         
-        # Configuration from environment variables
-        self.cluster_name = os.getenv('CLUSTER_NAME')
-        self.service_name = os.getenv('SERVICE_NAME')
-        self.task_family = os.getenv('TASK_DEFINITION_FAMILY')
-        self.container_name = os.getenv('CONTAINER_NAME')
-        self.log_group_name = os.getenv('LOG_GROUP_NAME')
-        self.execution_role_name = os.getenv('EXECUTION_ROLE_NAME')
-        self.task_role_name = os.getenv('TASK_ROLE_NAME')
-        self.security_group_name = os.getenv('SECURITY_GROUP_NAME')
-
-        # Application config from environment variables
-        self.container_port = int(os.getenv('CONTAINER_PORT'))
-        self.cpu = os.getenv('CPU')
-        self.memory = os.getenv('MEMORY')
-        self.desired_count = int(os.getenv('DESIRED_COUNT'))
-
-        # Image config from environment variables
-        backend_ecr_repo = os.getenv('BACKEND_ECR_REPO', 'farmzilla-backend')
-        self.image_uri = f"{self.account_id}.dkr.ecr.{self.region}.amazonaws.com/{backend_ecr_repo}:back-end"
+        # Frontend configuration from environment variables
+        self.cluster_name = os.getenv('FRONTEND_CLUSTER_NAME')
+        self.service_name = os.getenv('FRONTEND_SERVICE_NAME')
+        self.task_family = os.getenv('FRONTEND_TASK_DEFINITION_FAMILY')
+        self.container_name = os.getenv('FRONTEND_CONTAINER_NAME')
+        self.log_group_name = os.getenv('FRONTEND_LOG_GROUP_NAME')
+        self.execution_role_name = os.getenv('FRONTEND_EXECUTION_ROLE_NAME')
+        self.task_role_name = os.getenv('FRONTEND_TASK_ROLE_NAME')
+        self.security_group_name = os.getenv('FRONTEND_SECURITY_GROUP_NAME')
         
-        # Get VPC and subnet info
+        # Application config (cost-optimized)
+        self.container_port = int(os.getenv('FRONTEND_CONTAINER_PORT'))
+        self.cpu = os.getenv('FRONTEND_CPU')
+        self.memory = os.getenv('FRONTEND_MEMORY')
+        self.desired_count = int(os.getenv('FRONTEND_DESIRED_COUNT'))
+        
+        # Paths and image config
+        self.frontend_path = os.path.join(project_root, 'front_end')
+        self.repository_name = os.getenv('FRONTEND_ECR_REPO')
+        self.image_tag = 'latest'
+        self.image_uri = f"{self.account_id}.dkr.ecr.{self.region}.amazonaws.com/{self.repository_name}:{self.image_tag}"
+        
+        # Network config - reuse existing VPC from backend
         self.vpc_id = self.get_default_vpc()
         self.subnet_ids = self.get_public_subnets()
 
     def get_default_vpc(self):
-        """Get default VPC"""
+        """Get default VPC (same as backend)"""
         response = self.ec2_client.describe_vpcs(
             Filters=[{'Name': 'is-default', 'Values': ['true']}]
         )
         if response['Vpcs']:
             return response['Vpcs'][0]['VpcId']
         else:
-            # If no default VPC, get the first available VPC
             response = self.ec2_client.describe_vpcs()
             return response['Vpcs'][0]['VpcId']
 
@@ -75,6 +79,102 @@ class FarmZillaFargateDeployer:
         )
         return [subnet['SubnetId'] for subnet in response['Subnets']]
 
+    def create_ecr_repository(self):
+        """Create ECR repository if it doesn't exist"""
+        try:
+            response = self.ecr_client.describe_repositories(
+                repositoryNames=[self.repository_name]
+            )
+            print(f"✅ ECR repository {self.repository_name} already exists")
+            return response['repositories'][0]['repositoryUri']
+        except ClientError as e:
+            if 'RepositoryNotFoundException' in str(e):
+                print(f"Creating ECR repository: {self.repository_name}")
+                response = self.ecr_client.create_repository(
+                    repositoryName=self.repository_name,
+                    imageScanningConfiguration={'scanOnPush': True}
+                )
+                
+                # Set lifecycle policy separately
+                lifecycle_policy = {
+                    "rules": [
+                        {
+                            "rulePriority": 1,
+                            "selection": {
+                                "tagStatus": "untagged",
+                                "countType": "sinceImagePushed",
+                                "countUnit": "days",
+                                "countNumber": 7
+                            },
+                            "action": {
+                                "type": "expire"
+                            }
+                        }
+                    ]
+                }
+                
+                try:
+                    self.ecr_client.put_lifecycle_policy(
+                        repositoryName=self.repository_name,
+                        lifecyclePolicyText=json.dumps(lifecycle_policy)
+                    )
+                    print(f"✅ ECR lifecycle policy applied")
+                except ClientError as policy_error:
+                    print(f"⚠️  Could not set lifecycle policy: {policy_error}")
+                
+                print(f"✅ ECR repository created: {response['repository']['repositoryUri']}")
+                return response['repository']['repositoryUri']
+            else:
+                raise
+
+    def build_and_push_image(self):
+        """Build Docker image and push to ECR"""
+        print("🔨 Building and pushing frontend Docker image...")
+        
+        # Create ECR repository
+        self.create_ecr_repository()
+        
+        # Get ECR login token
+        print("Getting ECR login token...")
+        response = self.ecr_client.get_authorization_token()
+        token = response['authorizationData'][0]['authorizationToken']
+        endpoint = response['authorizationData'][0]['proxyEndpoint']
+        
+        # Decode token
+        import base64
+        username, password = base64.b64decode(token).decode().split(':')
+        
+        # Docker login to ECR
+        login_cmd = f'echo {password} | docker login --username {username} --password-stdin {endpoint}'
+        result = subprocess.run(login_cmd, shell=True, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise Exception(f"Docker login failed: {result.stderr}")
+        print("✅ Logged in to ECR")
+        
+        # Change to frontend directory
+        original_dir = os.getcwd()
+        os.chdir(self.frontend_path)
+        
+        try:
+            # Build Docker image
+            print(f"Building Docker image: {self.image_uri}")
+            build_cmd = f'docker build -t {self.image_uri} .'
+            result = subprocess.run(build_cmd, shell=True, capture_output=True, text=True)
+            if result.returncode != 0:
+                raise Exception(f"Docker build failed: {result.stderr}")
+            print("✅ Docker image built successfully")
+            
+            # Push to ECR
+            print(f"Pushing image to ECR...")
+            push_cmd = f'docker push {self.image_uri}'
+            result = subprocess.run(push_cmd, shell=True, capture_output=True, text=True)
+            if result.returncode != 0:
+                raise Exception(f"Docker push failed: {result.stderr}")
+            print("✅ Image pushed to ECR successfully")
+            
+        finally:
+            os.chdir(original_dir)
+
     def create_cluster(self):
         """Create ECS cluster if it doesn't exist"""
         try:
@@ -87,7 +187,6 @@ class FarmZillaFargateDeployer:
                 print(f"✅ Cluster {self.cluster_name} already exists")
                 return self.get_cluster_arn()
             else:
-                print(f"❌ Error creating cluster: {e}")
                 raise
 
     def get_cluster_arn(self):
@@ -105,13 +204,11 @@ class FarmZillaFargateDeployer:
             if 'ResourceAlreadyExistsException' in str(e):
                 print(f"✅ Log group {self.log_group_name} already exists")
             else:
-                print(f"❌ Error creating log group: {e}")
                 raise
 
     def create_execution_role(self):
         """Create ECS task execution role"""
         try:
-            # Check if role exists
             response = self.iam_client.get_role(RoleName=self.execution_role_name)
             print(f"✅ Execution role already exists: {response['Role']['Arn']}")
             return response['Role']['Arn']
@@ -132,13 +229,11 @@ class FarmZillaFargateDeployer:
             ]
         }
         
-        # Create role
         response = self.iam_client.create_role(
             RoleName=self.execution_role_name,
             AssumeRolePolicyDocument=json.dumps(trust_policy)
         )
         
-        # Attach policy
         self.iam_client.attach_role_policy(
             RoleName=self.execution_role_name,
             PolicyArn='arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
@@ -149,9 +244,8 @@ class FarmZillaFargateDeployer:
         return role_arn
 
     def create_task_role(self):
-        """Create ECS task role with S3 and RDS permissions"""
+        """Create ECS task role (minimal permissions for frontend)"""
         try:
-            # Check if role exists
             response = self.iam_client.get_role(RoleName=self.task_role_name)
             print(f"✅ Task role already exists: {response['Role']['Arn']}")
             return response['Role']['Arn']
@@ -172,58 +266,16 @@ class FarmZillaFargateDeployer:
             ]
         }
         
-        # Create role
         response = self.iam_client.create_role(
             RoleName=self.task_role_name,
             AssumeRolePolicyDocument=json.dumps(trust_policy)
         )
         
-        # Create custom policy for S3 and RDS access with minimal permissions
-        bucket_name = os.getenv('AWS_BUCKET_NAME')
-        rds_endpoint = os.getenv('AWS_RDS_ENDPOINT')
-        
+        # Minimal policy for frontend (just CloudWatch logs)
         policy_document = {
             "Version": "2012-10-17",
             "Statement": [
                 {
-                    "Sid": "S3BucketAccess",
-                    "Effect": "Allow",
-                    "Action": [
-                        "s3:GetObject",
-                        "s3:PutObject",
-                        "s3:DeleteObject"
-                    ],
-                    "Resource": [
-                        f"arn:aws:s3:::{bucket_name}/*"
-                    ]
-                },
-                {
-                    "Sid": "S3BucketList",
-                    "Effect": "Allow",
-                    "Action": [
-                        "s3:ListBucket"
-                    ],
-                    "Resource": [
-                        f"arn:aws:s3:::{bucket_name}"
-                    ],
-                    "Condition": {
-                        "StringLike": {
-                            "s3:prefix": ["*"]
-                        }
-                    }
-                },
-                {
-                    "Sid": "RDSConnectOnly",
-                    "Effect": "Allow",
-                    "Action": [
-                        "rds-db:connect"
-                    ],
-                    "Resource": [
-                        f"arn:aws:rds-db:{self.region}:{self.account_id}:dbuser:*"
-                    ]
-                },
-                {
-                    "Sid": "CloudWatchLogs",
                     "Effect": "Allow",
                     "Action": [
                         "logs:CreateLogStream",
@@ -236,7 +288,6 @@ class FarmZillaFargateDeployer:
             ]
         }
         
-        # Create and attach custom policy
         policy_name = f"{self.task_role_name}Policy"
         try:
             self.iam_client.create_policy(
@@ -254,14 +305,12 @@ class FarmZillaFargateDeployer:
         )
         
         role_arn = response['Role']['Arn']
-        print(f"✅ Created task role with S3/RDS permissions: {role_arn}")
+        print(f"✅ Created task role: {role_arn}")
         return role_arn
 
     def create_security_group(self):
-        """Create security group for Fargate task"""
-        
+        """Create security group for frontend Fargate task"""
         try:
-            # Check if security group exists
             response = self.ec2_client.describe_security_groups(
                 Filters=[
                     {'Name': 'group-name', 'Values': [self.security_group_name]},
@@ -274,24 +323,29 @@ class FarmZillaFargateDeployer:
                 print(f"✅ Security group already exists: {sg_id}")
                 return sg_id
             
-            # Create security group
             print(f"Creating security group: {self.security_group_name}")
             response = self.ec2_client.create_security_group(
                 GroupName=self.security_group_name,
-                Description='Security group for FarmZilla FastAPI application',
+                Description='Security group for FarmZilla React frontend',
                 VpcId=self.vpc_id
             )
             
             sg_id = response['GroupId']
             
-            # Add inbound rule for container port
+            # Add inbound rules for HTTP and HTTPS
             self.ec2_client.authorize_security_group_ingress(
                 GroupId=sg_id,
                 IpPermissions=[
                     {
                         'IpProtocol': 'tcp',
-                        'FromPort': self.container_port,
-                        'ToPort': self.container_port,
+                        'FromPort': 80,
+                        'ToPort': 80,
+                        'IpRanges': [{'CidrIp': '0.0.0.0/0'}]
+                    },
+                    {
+                        'IpProtocol': 'tcp',
+                        'FromPort': 443,
+                        'ToPort': 443,
                         'IpRanges': [{'CidrIp': '0.0.0.0/0'}]
                     }
                 ]
@@ -305,24 +359,9 @@ class FarmZillaFargateDeployer:
             raise
 
     def register_task_definition(self):
-        """Register ECS task definition with environment variables"""
+        """Register ECS task definition for frontend"""
         execution_role_arn = self.create_execution_role()
         task_role_arn = self.create_task_role()
-        
-        # Environment variables from .env file
-        environment_vars = [
-            {"name": "AWS_RDS_PASSWORD", "value": os.getenv("AWS_RDS_PASSWORD")},
-            {"name": "AWS_RDS_ENDPOINT", "value": os.getenv("AWS_RDS_ENDPOINT")},
-            {"name": "AWS_RDS_MASTER_USERNAME", "value": os.getenv("AWS_RDS_MASTER_USERNAME")},
-            {"name": "AWS_RDS_PORT", "value": os.getenv("AWS_RDS_PORT")},
-            {"name": "AWS_RDS_DATABASE", "value": os.getenv("AWS_RDS_DATABASE")},
-            {"name": "AWS_BUCKET_NAME", "value": os.getenv("AWS_BUCKET_NAME")},
-            {"name": "AWS_RDS_URL", "value": os.getenv("AWS_RDS_URL")},
-            {"name": "AUTH_SECRET_KEY", "value": os.getenv("AUTH_SECRET_KEY")},
-            {"name": "ALGORITHM", "value": os.getenv("ALGORITHM")},
-            {"name": "ACCESS_TOKEN_EXPIRE_MINUTES", "value": os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")},
-            {"name": "AWS_DEFAULT_REGION", "value": self.region}
-        ]
         
         task_definition = {
             'family': self.task_family,
@@ -343,7 +382,6 @@ class FarmZillaFargateDeployer:
                         }
                     ],
                     'essential': True,
-                    'environment': environment_vars,
                     'logConfiguration': {
                         'logDriver': 'awslogs',
                         'options': {
@@ -351,7 +389,10 @@ class FarmZillaFargateDeployer:
                             'awslogs-region': self.region,
                             'awslogs-stream-prefix': 'ecs'
                         }
-                    }
+                    },
+                    # Cost optimization: resource limits
+                    'memoryReservation': 256,
+                    'cpu': 128
                 }
             ]
         }
@@ -367,7 +408,6 @@ class FarmZillaFargateDeployer:
     def create_service(self, security_group_id):
         """Create or update ECS service"""
         try:
-            # Check if service exists
             response = self.ecs_client.describe_services(
                 cluster=self.cluster_name,
                 services=[self.service_name]
@@ -377,7 +417,6 @@ class FarmZillaFargateDeployer:
                 print(f"Service {self.service_name} already exists, updating...")
                 return self.update_service()
             
-            # Create new service
             print(f"Creating ECS service: {self.service_name}")
             response = self.ecs_client.create_service(
                 cluster=self.cluster_name,
@@ -391,6 +430,11 @@ class FarmZillaFargateDeployer:
                         'securityGroups': [security_group_id],
                         'assignPublicIp': 'ENABLED'
                     }
+                },
+                # Cost optimization settings
+                deploymentConfiguration={
+                    'maximumPercent': 200,
+                    'minimumHealthyPercent': 50
                 }
             )
             
@@ -430,7 +474,6 @@ class FarmZillaFargateDeployer:
     def get_public_ip(self):
         """Get public IP of running task"""
         try:
-            # Get running tasks
             response = self.ecs_client.list_tasks(
                 cluster=self.cluster_name,
                 serviceName=self.service_name
@@ -442,20 +485,17 @@ class FarmZillaFargateDeployer:
             
             task_arn = response['taskArns'][0]
             
-            # Get task details
             response = self.ecs_client.describe_tasks(
                 cluster=self.cluster_name,
                 tasks=[task_arn]
             )
             
-            # Extract network interface ID
             task = response['tasks'][0]
             for attachment in task['attachments']:
                 for detail in attachment['details']:
                     if detail['name'] == 'networkInterfaceId':
                         eni_id = detail['value']
                         
-                        # Get public IP from network interface
                         response = self.ec2_client.describe_network_interfaces(
                             NetworkInterfaceIds=[eni_id]
                         )
@@ -472,40 +512,41 @@ class FarmZillaFargateDeployer:
 
     def deploy(self):
         """Main deployment method"""
-        print("🚀 Starting FarmZilla Fargate deployment...")
+        print("🚀 Starting FarmZilla Frontend Fargate deployment...")
         print("=" * 60)
         
         try:
-            # Step 1: Create cluster
+            # Step 1: Build and push Docker image
+            self.build_and_push_image()
+            
+            # Step 2: Create cluster
             self.create_cluster()
             
-            # Step 2: Create log group
+            # Step 3: Create log group
             self.create_log_group()
             
-            # Step 3: Create security group
+            # Step 4: Create security group
             security_group_id = self.create_security_group()
             
-            # Step 4: Register task definition
+            # Step 5: Register task definition
             self.register_task_definition()
             
-            # Step 5: Create/update service
+            # Step 6: Create/update service
             self.create_service(security_group_id)
             
-            # Step 6: Wait for service to stabilize
+            # Step 7: Wait for service to stabilize
             self.wait_for_service_stable()
             
-            # Step 7: Get public IP
+            # Step 8: Get public IP
             public_ip = self.get_public_ip()
             
             print("=" * 60)
-            print("🎉 FARMZILLA DEPLOYMENT COMPLETE!")
+            print("🎉 FARMZILLA FRONTEND DEPLOYMENT COMPLETE!")
             print("=" * 60)
             
             if public_ip:
-                print(f"🌐 Your FarmZilla API is running at:")
-                print(f"   Main endpoint: http://{public_ip}:{self.container_port}/")
-                print(f"   API docs:      http://{public_ip}:{self.container_port}/docs")
-                print(f"   OpenAPI spec:  http://{public_ip}:{self.container_port}/openapi.json")
+                print(f"🌐 Your FarmZilla Frontend is running at:")
+                print(f"   http://{public_ip}")
             else:
                 print("⚠️  Could not retrieve public IP. Check AWS console for task details.")
             
@@ -516,5 +557,5 @@ class FarmZillaFargateDeployer:
             raise
 
 if __name__ == "__main__":
-    deployer = FarmZillaFargateDeployer()
+    deployer = FarmZillaFrontendDeployer()
     deployer.deploy()
