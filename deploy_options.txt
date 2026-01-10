@@ -45,6 +45,24 @@ DELETE:          python deploy_frontend.py --delete
 Config: farmzilla-frontend-cluster, 256 CPU, 512 MB, Port 80
 
 ===========================================================================
+🌐 CUSTOM DOMAIN DEPLOYMENT (back_end/src/)
+===========================================================================
+
+SIMPLE DOMAIN:      python deploy_domain_simple.py         # $0.50/month (Recommended)
+DOMAIN STATUS:      python deploy_domain_simple.py --status
+ELASTIC IP DOMAIN:  python deploy_domain_eip.py            # $4.15/month (Advanced)
+CLEANUP DOMAIN:     python deploy_domain_eip.py --cleanup
+
+PREREQUISITES:
+1. Frontend service already deployed and running
+2. Route 53 hosted zone created for your domain  
+3. Domain nameservers updated at registrar
+4. DOMAIN_NAME and HOSTED_ZONE_ID configured in .env
+
+Simple Domain: http://farmzilla.xyz (IP changes with restarts)
+Elastic IP: http://farmzilla.xyz (Static IP, requires IAM permissions)
+
+===========================================================================
 🔄 CI/CD PIPELINE (back_end/src/)
 ===========================================================================
 
@@ -149,6 +167,29 @@ QUICK FIXES:
 • Wait 2-3 minutes and retry: python setup_codepipeline.py
 • Check role: aws iam get-role --role-name farmzilla-codepipeline-role
 • Manual fix: Delete pipeline in AWS Console and retry
+
+❌ Frontend "This site can't be reached" or connection timeout
+→ Check if service is running and get current IP address
+QUICK FIXES:
+• Get current IP: aws ecs describe-services --cluster farmzilla-frontend-cluster --services farmzilla-frontend-service
+• Check task status: aws ecs list-tasks --cluster farmzilla-frontend-cluster --service farmzilla-frontend-service
+• Check logs: aws logs get-log-events --log-group-name "/ecs/farmzilla-frontend"
+• Common issue: nginx config errors (check for invalid upstream URLs)
+
+❌ "You do not have permission to access the specified resource" (Elastic IP)
+→ AWS IAM permissions insufficient for Fargate network interface modification
+QUICK FIXES:
+• Use Simple Domain instead: python deploy_domain_simple.py
+• Add IAM permissions: ec2:AssociateAddress, ec2:DisassociateAddress
+• Alternative: Contact AWS admin to add required permissions
+
+❌ Domain shows "recently registered" or parking page instead of app
+→ Nameservers not updated at domain registrar (Namecheap)
+QUICK FIXES:
+• Check status: python check_domain.py
+• Update nameservers at Namecheap to Route 53 nameservers
+• Wait 24-48 hours for global propagation
+• Test direct: nslookup farmzilla.xyz ns-267.awsdns-33.com
 
 ===========================================================================
 📊 MONITORING
