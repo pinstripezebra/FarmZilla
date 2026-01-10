@@ -18,6 +18,7 @@ import {
   Text,
   Image,
   useToast,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import { FaUserAlt, FaLock } from "react-icons/fa";
 import api from "./../../services/apli-client";
@@ -148,6 +149,13 @@ function Login() {
     }
   };
 
+  // Responsive values
+  const formWidth = useBreakpointValue({ base: "90%", md: "400px" });
+  const logoSize = useBreakpointValue({ base: "50px", md: "60px" });
+  const headerPadding = useBreakpointValue({ base: "15px", md: "10px" });
+  const fontSize = useBreakpointValue({ base: "xl", md: "2xl" });
+  const formPadding = useBreakpointValue({ base: "1rem", md: "2rem" });
+
   return (
     <Flex
       flexDirection="column"
@@ -158,15 +166,16 @@ function Login() {
       backgroundImage={`url(${backgroundImage})`} // Set the background image
       backgroundSize="cover" // Ensure the image covers the entire container
       backgroundPosition="center" // Center the image
+      px={{ base: 4, md: 0 }} // Add horizontal padding on mobile
     >
       {/* Header Section */}
-      <Box position="absolute" top="0" left="0" padding="10px">
+      <Box position="absolute" top="0" left="0" padding={headerPadding}>
         <HStack alignItems="center">
           {/* Logo */}
-          <Image src={logo} boxSize="60px" borderRadius={10} />
+          <Image src={logo} boxSize={logoSize} borderRadius={10} />
 
           {/* App Title */}
-          <Text fontSize="2xl" fontWeight="bold" color="teal.700">
+          <Text fontSize={fontSize} fontWeight="bold" color="teal.700">
             Farmzilla
           </Text>
         </HStack>
@@ -174,11 +183,12 @@ function Login() {
 
       <Stack
         spacing={4}
-        p="1rem"
+        p={formPadding}
         backgroundColor="rgba(255, 255, 255, 0.9)" // Semi-transparent white background
         boxShadow="md"
         borderRadius="md"
-        width="400px"
+        width={formWidth}
+        maxWidth="400px"
       >
         {/* Avatar and Heading */}
         <Stack alignItems="center">

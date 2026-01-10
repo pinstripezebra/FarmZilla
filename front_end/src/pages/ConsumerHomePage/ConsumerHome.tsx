@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box, Flex, Text, Heading } from "@chakra-ui/react";
+import { Box, Flex, Text, Heading, useBreakpointValue } from "@chakra-ui/react";
 import ConsumerSideBar from "./ConsumerAssets/ConsumerSideBar";
 import MarketplaceProductsTable from "../../components/MarketplaceProductsTable";
 import MarketPlaceFarmsTable from "../../components/MarketPlaceFarmsTable";
@@ -111,18 +111,26 @@ const ConsumerHome: React.FC = () => {
     }
   };
 
+  // Responsive values
+  const sidebarDisplay = useBreakpointValue({ base: "none", lg: "flex" });
+  const contentPadding = useBreakpointValue({ base: 4, md: 6 });
+  const headingSize = useBreakpointValue({ base: "md", md: "lg" });
+  const flexDirection = useBreakpointValue({ base: "column", lg: "row" }) as "column" | "row";
+
   return (
     <Flex height="100vh" direction="column">
       {/* Top Bar */}
       <TopBar showLogoutButton={true} />
       
-      <Flex flex="1" direction="row">
-        {/* Sidebar */}
-        <ConsumerSideBar onActionTriggered={handleSidebarAction} currentView={currentView} />
+      <Flex flex="1" direction={flexDirection}>
+        {/* Sidebar - Hidden on mobile */}
+        <Box display={sidebarDisplay}>
+          <ConsumerSideBar onActionTriggered={handleSidebarAction} currentView={currentView} />
+        </Box>
         
         {/* Main Content */}
-        <Flex flex="1" direction="column" p={6}>
-          <Heading color="teal.600" size="lg" mb={6}>
+        <Flex flex="1" direction="column" p={contentPadding}>
+          <Heading color="teal.600" size={headingSize} mb={6}>
             {currentView === "view-farmer-products" && selectedProducer 
               ? `${selectedProducer.username}'s Products`
               : currentView === "maps" 

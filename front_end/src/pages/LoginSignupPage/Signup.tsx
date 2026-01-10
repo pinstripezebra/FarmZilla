@@ -23,6 +23,7 @@ import {
   Switch,
   FormLabel,
   Textarea,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import { FaUserAlt, FaLock, FaPhone } from "react-icons/fa";
 import backgroundImage from "../../assets/register.jpg";
@@ -64,33 +65,48 @@ const Signup = () => {
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const locationString = `${latitude},${longitude}`;
-          resolve(locationString);
-        },
-        (error) => {
-          let errorMessage = "Unable to retrieve your location";
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = "Location access denied by user";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = "Location information is unavailable";
-              break;
-            case error.TIMEOUT:
-              errorMessage = "Location request timed out";
-              break;
+      // Create a timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("Location request timed out after 15 seconds. Please try again or check your browser's location permissions."));
+        }, 15000); // Increased to 15 seconds
+      });
+
+      // Create the geolocation promise
+      const geolocationPromise = new Promise<string>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const locationString = `${latitude},${longitude}`;
+            resolve(locationString);
+          },
+          (error) => {
+            let errorMessage = "Unable to retrieve your location";
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage = "Location access denied. Please enable location permissions in your browser and try again.";
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage = "Location information is unavailable. Please check your GPS/location services.";
+                break;
+              case error.TIMEOUT:
+                errorMessage = "Location request timed out. Please try again.";
+                break;
+            }
+            reject(new Error(errorMessage));
+          },
+          {
+            enableHighAccuracy: false, // Changed to false for faster response
+            timeout: 12000, // Reduced timeout for the geolocation API itself
+            maximumAge: 300000 // Accept cached location up to 5 minutes old
           }
-          reject(new Error(errorMessage));
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        }
-      );
+        );
+      });
+
+      // Race between timeout and geolocation
+      Promise.race([geolocationPromise, timeoutPromise])
+        .then(resolve)
+        .catch(reject);
     });
   };
 
@@ -215,6 +231,13 @@ const Signup = () => {
     }
   };
 
+  // Responsive values
+  const formWidth = useBreakpointValue({ base: "95%", md: "468px" });
+  const logoSize = useBreakpointValue({ base: "50px", md: "60px" });
+  const headerPadding = useBreakpointValue({ base: "15px", md: "10px" });
+  const fontSize = useBreakpointValue({ base: "xl", md: "2xl" });
+  const formPadding = useBreakpointValue({ base: "1rem", md: "2rem" });
+
   return (
     <Flex
       flexDirection="column"
@@ -225,14 +248,15 @@ const Signup = () => {
       backgroundImage={`url(${backgroundImage})`}
       backgroundSize="cover"
       backgroundPosition="center"
+      px={{ base: 4, md: 0 }} // Add horizontal padding on mobile
     >
       {/* Header Section */}
-      <Box position="absolute" top="0" left="0" padding="10px">
+      <Box position="absolute" top="0" left="0" padding={headerPadding}>
         <HStack alignItems="center">
           {/* Logo */}
-          <Image src={logo} boxSize="60px" borderRadius={10} />
+          <Image src={logo} boxSize={logoSize} borderRadius={10} />
           {/* App Title */}
-          <Text fontSize="2xl" fontWeight="bold" color="teal.700">
+          <Text fontSize={fontSize} fontWeight="bold" color="teal.700">
             FarmZilla
           </Text>
         </HStack>
@@ -243,11 +267,11 @@ const Signup = () => {
         justifyContent="center"
         alignItems="center"
       >
-        <Box minW={{ base: "90%", md: "468px" }}>
+        <Box minW={formWidth}>
           <form onSubmit={handleSubmit}>
             <Stack
               spacing={4}
-              p="1rem"
+              p={formPadding}
               backgroundColor="whiteAlpha.900"
               boxShadow="md"
               alignItems="center"

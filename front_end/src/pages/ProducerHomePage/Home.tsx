@@ -6,7 +6,8 @@ import {
   Flex, 
   Box, 
   useToast, 
-  useDisclosure
+  useDisclosure,
+  useBreakpointValue
 } from "@chakra-ui/react";
 import ProducerSupplyBar from "./HomePageAssets/ProducerSupplyBar";
 import ProductEntryForm from "./HomePageAssets/ProductEntryForm";
@@ -109,15 +110,24 @@ const Home: React.FC = () => {
     setSelectedProduct(null);
   };
 
+  // Responsive values
+  const sidebarDisplay = useBreakpointValue({ base: "none", lg: "flex" });
+  const contentPadding = useBreakpointValue({ base: 4, md: 6 });
+  const headingSize = useBreakpointValue({ base: "md", md: "lg" });
+  const flexDirection = useBreakpointValue({ base: "column", lg: "row" }) as "column" | "row";
+  const buttonSize = useBreakpointValue({ base: "md", md: "lg" });
+
   return (
     <Flex height="100vh" direction="column">
       {/* Top Bar */}
       <TopBar showLogoutButton={true} />
-      <Flex flex="1" direction="row">
-        {/* Sidebar */}
-        <ProducerSupplyBar activePage="products" />
+      <Flex flex="1" direction={flexDirection}>
+        {/* Sidebar - Hidden on mobile */}
+        <Box display={sidebarDisplay}>
+          <ProducerSupplyBar activePage="products" />
+        </Box>
         {/* Main Content */}
-        <Flex flex="1" direction="column" p={6}>
+        <Flex flex="1" direction="column" p={contentPadding}>
           {/* Producer Information Card */}
           {user && (
             <ProducerInfoCard 
@@ -151,12 +161,12 @@ const Home: React.FC = () => {
           )}
 
           <Flex justify="flex-start" align="center" mb={4}>
-            <Heading color="teal.600" size="lg">My Products</Heading>
+            <Heading color="teal.600" size={headingSize}>My Products</Heading>
           </Flex>
           
           {/* Add Products Button */}
           <Flex justify="flex-start" mb={4}>
-            <Button colorScheme="teal" variant="solid" onClick={onOpen}>
+            <Button colorScheme="teal" variant="solid" size={buttonSize} onClick={onOpen}>
               Add Products
             </Button>
           </Flex>
