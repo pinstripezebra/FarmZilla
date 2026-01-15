@@ -66,19 +66,46 @@ def deploy_frontend():
         raise
 
 def deploy_applications():
-    """Deploy both backend and frontend applications"""
+    """Deploy both backend and frontend applications with automatic IP coordination"""
     print("🚀 Deploying FarmZilla Applications...")
     print("=" * 60)
     
     try:
         # Deploy backend first
-        deploy_backend()
+        print("📦 Deploying Backend Application...")
+        backend_deployer = FarmZillaFargateDeployer()
+        backend_deployer.deploy()
         
-        # Deploy frontend
-        deploy_frontend()
+        # Get backend IP after deployment
+        backend_ip = backend_deployer.get_public_ip()
+        if backend_ip:
+            print(f"✅ Backend deployed at: {backend_ip}:8000")
+        else:
+            print("⚠️  Could not get backend IP - frontend may not connect properly")
+        
+        print("✅ Backend deployment complete!")
+        
+        # Deploy frontend with backend IP detection (automatic)
+        print("\n🌐 Deploying Frontend Application...")
+        frontend_deployer = FarmZillaFrontendDeployer()
+        frontend_deployer.deploy()  # This will auto-detect backend IP
+        print("✅ Frontend deployment complete!")
         
         print("\n" + "=" * 60)
         print("🎉 ALL APPLICATIONS DEPLOYED SUCCESSFULLY!")
+        print("=" * 60)
+        
+        # Show final status
+        if backend_ip:
+            print(f"📦 Backend API: http://{backend_ip}:8000/docs")
+        
+        frontend_ip = frontend_deployer.get_public_ip()
+        if frontend_ip:
+            print(f"🌐 Frontend: http://{frontend_ip}")
+            domain_name = os.getenv('DOMAIN_NAME')
+            if domain_name:
+                print(f"🌍 Custom Domain: http://{domain_name}")
+        
         print("=" * 60)
         
     except Exception as e:

@@ -1,4 +1,4 @@
-import React from "react";
+
 import { Box, useBreakpointValue } from "@chakra-ui/react";
 import Features from "./components/Features";
 import Introduction from "./components/Introduction";

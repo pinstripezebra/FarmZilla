@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Box,
   Card,
   CardBody,
   useBreakpointValue
@@ -18,7 +17,6 @@ const ResponsiveCard: React.FC<ResponsiveCardProps> = ({
   shadow = "md"
 }) => {
   const cardPadding = useBreakpointValue({ base: 4, md: 6 });
-  const cardSpacing = useBreakpointValue({ base: 4, md: 6 });
   
   return (
     <Card 
@@ -29,7 +27,7 @@ const ResponsiveCard: React.FC<ResponsiveCardProps> = ({
       transition="all 0.2s"
       _hover={{ shadow: 'lg', transform: 'translateY(-2px)' }}
     >
-      <CardBody p={cardPadding} spacing={cardSpacing}>
+      <CardBody p={cardPadding}>
         {children}
       </CardBody>
     </Card>

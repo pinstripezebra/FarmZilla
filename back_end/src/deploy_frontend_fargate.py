@@ -134,6 +134,13 @@ class FarmZillaFrontendDeployer:
         # Create ECR repository
         self.create_ecr_repository()
         
+        # Step 1: Detect current backend IP and update environment
+        backend_ip = self.get_current_backend_ip()
+        if backend_ip:
+            self.update_frontend_env_with_backend_ip(backend_ip)
+        else:
+            print("⚠️  Could not detect backend IP - frontend may not connect properly")
+        
         # Get ECR login token
         print("Getting ECR login token...")
         response = self.ecr_client.get_authorization_token()
@@ -510,6 +517,136 @@ class FarmZillaFrontendDeployer:
             print(f"❌ Error getting public IP: {e}")
             return None
 
+    def get_current_backend_ip(self):
+        """Get the current public IP of the backend service"""
+        try:
+            backend_cluster_name = os.getenv('BACKEND_CLUSTER_NAME', 'farmzilla-cluster')
+            backend_service_name = os.getenv('BACKEND_SERVICE_NAME', 'farmzilla-service')
+            
+            print(f"🔍 Finding current backend IP from {backend_cluster_name}/{backend_service_name}...")
+            
+            # Get running backend tasks
+            response = self.ecs_client.list_tasks(
+                cluster=backend_cluster_name,
+                serviceName=backend_service_name
+            )
+            
+            if not response['taskArns']:
+                print("⚠️  No backend tasks found - backend may not be running")
+                return None
+            
+            task_arn = response['taskArns'][0]
+            
+            # Get task details
+            response = self.ecs_client.describe_tasks(
+                cluster=backend_cluster_name,
+                tasks=[task_arn]
+            )
+            
+            task = response['tasks'][0]
+            for attachment in task['attachments']:
+                for detail in attachment['details']:
+                    if detail['name'] == 'networkInterfaceId':
+                        eni_id = detail['value']
+                        
+                        response = self.ec2_client.describe_network_interfaces(
+                            NetworkInterfaceIds=[eni_id]
+                        )
+                        
+                        ni = response['NetworkInterfaces'][0]
+                        if 'Association' in ni and 'PublicIp' in ni['Association']:
+                            backend_ip = ni['Association']['PublicIp']
+                            print(f"✅ Found backend IP: {backend_ip}")
+                            return backend_ip
+            
+            print("❌ Could not find backend public IP")
+            return None
+            
+        except Exception as e:
+            print(f"⚠️  Error getting backend IP: {e}")
+            return None
+
+    def update_frontend_env_with_backend_ip(self, backend_ip):
+        """Update frontend .env.production with current backend IP"""
+        try:
+            env_production_path = os.path.join(self.frontend_path, '.env.production')
+            
+            # Read current .env.production or create new one
+            env_lines = []
+            if os.path.exists(env_production_path):
+                with open(env_production_path, 'r') as f:
+                    env_lines = f.readlines()
+            
+            # Update or add VITE_API_URL
+            backend_api_url = f"http://{backend_ip}:8000/api"
+            updated = False
+            
+            for i, line in enumerate(env_lines):
+                if line.strip().startswith('VITE_API_URL='):
+                    env_lines[i] = f"VITE_API_URL={backend_api_url}\n"
+                    updated = True
+                    break
+            
+            if not updated:
+                env_lines.append(f"VITE_API_URL={backend_api_url}\n")
+            
+            # Write back to file
+            with open(env_production_path, 'w') as f:
+                f.writelines(env_lines)
+            
+            print(f"✅ Updated .env.production: VITE_API_URL={backend_api_url}")
+            return True
+            
+        except Exception as e:
+            print(f"⚠️  Could not update .env.production: {e}")
+            return False
+
+    def update_domain_dns(self, public_ip):
+        """Update Route 53 DNS record to point to new IP address"""
+        try:
+            # Check if domain configuration exists
+            domain_name = os.getenv('DOMAIN_NAME')
+            hosted_zone_id = os.getenv('HOSTED_ZONE_ID')
+            
+            if not domain_name or not hosted_zone_id:
+                print("⚠️  Domain configuration not found in .env - skipping DNS update")
+                print("   Add DOMAIN_NAME and HOSTED_ZONE_ID to .env to enable automatic DNS updates")
+                return False
+            
+            print(f"🌐 Updating DNS: {domain_name} → {public_ip}")
+            
+            # Initialize Route 53 client
+            route53_client = boto3.client('route53', region_name=self.region)
+            
+            # Update the A record
+            change_batch = {
+                'Changes': [{
+                    'Action': 'UPSERT',
+                    'ResourceRecordSet': {
+                        'Name': domain_name,
+                        'Type': 'A',
+                        'TTL': 300,
+                        'ResourceRecords': [{'Value': public_ip}]
+                    }
+                }]
+            }
+            
+            response = route53_client.change_resource_record_sets(
+                HostedZoneId=hosted_zone_id,
+                ChangeBatch=change_batch
+            )
+            
+            print(f"✅ DNS record updated: {domain_name} → {public_ip}")
+            print(f"🌐 Your application will be available at: http://{domain_name}")
+            print("⏰ DNS propagation: 2-5 minutes")
+            
+            return True
+            
+        except Exception as e:
+            print(f"⚠️  Could not update DNS automatically: {e}")
+            print(f"   You can manually update DNS by running: python deploy_domain_simple.py")
+            return False
+
     def deploy(self):
         """Main deployment method"""
         print("🚀 Starting FarmZilla Frontend Fargate deployment...")
@@ -540,13 +677,24 @@ class FarmZillaFrontendDeployer:
             # Step 8: Get public IP
             public_ip = self.get_public_ip()
             
+            # Step 9: Update domain DNS automatically
+            dns_updated = False
+            if public_ip:
+                dns_updated = self.update_domain_dns(public_ip)
+            
             print("=" * 60)
             print("🎉 FARMZILLA FRONTEND DEPLOYMENT COMPLETE!")
             print("=" * 60)
             
             if public_ip:
                 print(f"🌐 Your FarmZilla Frontend is running at:")
-                print(f"   http://{public_ip}")
+                print(f"   Direct IP: http://{public_ip}")
+                
+                if dns_updated:
+                    domain_name = os.getenv('DOMAIN_NAME', 'your-domain.com')
+                    print(f"   Custom Domain: http://{domain_name} (2-5 min for DNS propagation)")
+                else:
+                    print(f"   💡 To enable automatic DNS updates, add DOMAIN_NAME and HOSTED_ZONE_ID to .env")
             else:
                 print("⚠️  Could not retrieve public IP. Check AWS console for task details.")
             

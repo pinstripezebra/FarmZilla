@@ -44,7 +44,13 @@ def update_only(deployer):
         
         public_ip = deployer.get_public_ip()
         if public_ip:
+            # Update domain DNS automatically
+            dns_updated = deployer.update_domain_dns(public_ip)
             print(f"✅ Update complete! Frontend available at: http://{public_ip}")
+            
+            if dns_updated:
+                domain_name = os.getenv('DOMAIN_NAME', 'your-domain.com')
+                print(f"🌐 Domain updated: http://{domain_name} (2-5 min for DNS propagation)")
         else:
             print("✅ Update complete!")
     except Exception as e:
